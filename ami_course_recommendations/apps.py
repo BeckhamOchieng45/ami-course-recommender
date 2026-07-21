@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 
 
-class AmiCourseReccomendationsConfig(AppConfig):
-    name = "ami_course_reccomendations"
+class AmiCourseRecommendationsConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "ami_course_recommendations"
