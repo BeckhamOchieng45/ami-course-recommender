@@ -17,6 +17,7 @@ import random
 import json
 import datetime
 import django
+from datetime import timezone as tz
 
 # Bootstrap Django so we can use ORM bulk_create
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -653,7 +654,9 @@ def build_usage_events(
             unique_courses.append(c)
 
     events = []
-    base_time = fake.date_time_between(start_date="-18m", end_date="now")
+    base_time = fake.date_time_between(
+        start_date="-18m", end_date="now"
+    ).replace(tzinfo=tz.utc)
 
     for offset, course in enumerate(unique_courses):
         timestamp = base_time + datetime.timedelta(days=offset * random.randint(3, 21))
