@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AMI Course Recommendations</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <style>
+    body { max-width: 860px; margin: 0 auto; padding: 1.5rem; }
+    h1 { margin-bottom: 0.25rem; }
+    .subtitle { color: var(--pico-muted-color); margin-bottom: 1.5rem; font-size: 0.95rem; }
+    .controls { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+    .controls label { flex: 1; min-width: 200px; }
+    .controls label span { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; font-weight: 600; }
+    #btn-go { margin-top: 0; }
+    #status { margin: 1rem 0 0.5rem; font-size: 0.9rem; color: var(--pico-muted-color); min-height: 1.4rem; }
+    .meta-bar { display: flex; gap: 1.5rem; margin-bottom: 1.25rem; font-size: 0.85rem; flex-wrap: wrap; }
+    .meta-bar span { background: var(--pico-secondary-background); padding: 0.2rem 0.6rem; border-radius: 4px; }
+    .rec-card { border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    .rec-header { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.5rem; }
+    .position { font-size: 1.5rem; font-weight: 700; color: var(--pico-primary); min-width: 2rem; line-height: 1; }
+    .course-title { font-size: 1.05rem; font-weight: 600; margin: 0; }
+    .course-meta { font-size: 0.8rem; color: var(--pico-muted-color); margin: 0.15rem 0 0; }
+    .reason { font-size: 0.9rem; background: var(--pico-secondary-background); border-left: 3px solid var(--pico-primary); padding: 0.5rem 0.75rem; border-radius: 0 4px 4px 0; margin: 0.6rem 0; }
+    .score-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .badge { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 10px; background: var(--pico-secondary-background); white-space: nowrap; }
+    .badge.driver-survey  { border: 1px solid #4caf50; color: #4caf50; }
+    .badge.driver-usage   { border: 1px solid #2196f3; color: #2196f3; }
+    .badge.driver-context { border: 1px solid #ff9800; color: #ff9800; }
+    .badge.driver-cohort  { border: 1px solid #9c27b0; color: #9c27b0; }
+    .badge.driver-fallback{ border: 1px solid var(--pico-muted-color); }
+    details { margin-top: 0.6rem; font-size: 0.82rem; }
+    summary { cursor: pointer; color: var(--pico-muted-color); user-select: none; }
+    .breakdown-table { width: 100%; border-collapse: collapse; margin-top: 0.4rem; }
+    .breakdown-table th, .breakdown-table td { padding: 0.25rem 0.5rem; text-align: left; border-bottom: 1px solid var(--pico-muted-border-color); }
+    .breakdown-table th { font-weight: 600; font-size: 0.8rem; }
+    .bar-cell { width: 120px; }
+    .bar { height: 8px; background: var(--pico-primary); border-radius: 4px; }
+    #error-msg { color: var(--pico-del-color); font-size: 0.9rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>AMI Course Recommendations</h1>
+  <p class="subtitle">AI Coach Bot · Learning Recommendation Engine</p>
+
+  <div class="controls">
+    <label>
+      <span>User ID</span>
+      <input id="user-id" type="text" placeholder="e.g. USR-00001" value="USR-00839" />
+    </label>
+    <label style="max-width:100px;">
+      <span>Results (n)</span>
+      <input id="n-param" type="number" value="5" min="1" max="20" />
+    </label>
+    <button id="btn-go" onclick="fetchRecs()">Get Recommendations</button>
+  </div>
+
+  <div style="margin-top:0.75rem; font-size:0.82rem; color:var(--pico-muted-color);">
+    Sample users:
+    <a href="#" onclick="loadUser('USR-00839')">USR-00839 (cold-start)</a> ·
+    <a href="#" onclick="loadUser('USR-00004')">USR-00004 (in-between)</a> ·
+    <a href="#" onclick="loadUser('USR-00025')">USR-00025 (heavy-usage)</a>
+  </div>
+
+  <p id="status"></p>
+  <p id="error-msg" hidden></p>
+  <div id="results"></div>
+
+  <script>
+    function loadUser(uid) {
+      document.getElementById('user-id').value = uid;
+      fetchRecs();
+      return false;
+    }
+
+    async function fetchRecs() {
+      const userId = document.getElementById('user-id').value.trim();
+      const n = parseInt(document.getElementById('n-param').value, 10) || 5;
+      const status = document.getElementById('status');
+      const errEl = document.getElementById('error-msg');
+      const results = document.getElementById('results');
+
+      if (!userId) {
+        errEl.textContent = 'Please enter a user ID.';
+        errEl.hidden = false;
+        return;
+      }
+
+      errEl.hidden = true;
+      results.innerHTML = '';
+      status.textContent = 'Loading…';
+
+      let data;
+      try {
+        const resp = await fetch(`/api/users/${encodeURIComponent(userId)}/recommendations?n=${n}`);
+        data = await resp.json();
+        if (!resp.ok) {
+          errEl.textContent = data.error || `Error ${resp.status}`;
+          errEl.hidden = false;
+          status.textContent = '';
+          return;
+        }
+      } catch (e) {
+        errEl.textContent = `Network error: ${e.message}`;
+        errEl.hidden = false;
+        status.textContent = '';
+        return;
+      }
+
+      const conf = (data.usage_confidence * 100).toFixed(0);
+      const confLabel = data.usage_confidence === 0
+        ? 'Cold-start (survey + context only)'
+        : data.usage_confidence < 1
+          ? `Blended (${conf}% behavior-driven)`
+          : 'Fully behavior-driven';
+
+      status.textContent = '';
+      results.innerHTML = `
+        <div class="meta-bar">
+          <span>👤 ${data.user_id}</span>
+          <span>📊 ${data.recommendation_count} recommendations</span>
+          <span>🎯 ${confLabel}</span>
+        </div>
+      `;
+
+      if (data.recommendations.length === 0) {
+        results.innerHTML += `<p>No eligible courses found — this user may have completed all available courses.</p>`;
+        return;
+      }
+
+      for (const rec of data.recommendations) {
+        results.innerHTML += renderRec(rec);
+      }
+    }
+
+    function renderRec(rec) {
+      const c = rec.course;
+      const driverClass = `driver-${rec.reason_driver}`;
+      const driverLabel = {
+        survey: '📝 survey match',
+        usage: '📈 usage-based',
+        context: '🏢 work context',
+        cohort: '👥 cohort popular',
+        fallback: '✦ general fit',
+      }[rec.reason_driver] || rec.reason_driver;
+
+      const levelBadge = { foundational: '🟢 Foundational', intermediate: '🟡 Intermediate', advanced: '🔴 Advanced' }[c.level] || c.level;
+      const paidBadge = c.is_paid ? '🎓 Certificate' : '🆓 Free';
+      const skills = c.skills_taught.slice(0, 4).map(s => `<span class="badge">${s}</span>`).join(' ');
+
+      // Score breakdown bar chart (max contribution ~0.4)
+      const maxContrib = 0.4;
+      const breakdownRows = rec.score_breakdown.map(b => {
+        const barWidth = Math.min(100, (b.contribution / maxContrib) * 100).toFixed(1);
+        return `
+          <tr>
+            <td>${b.component.replace(/_/g,' ')}</td>
+            <td>${b.raw_score.toFixed(3)}</td>
+            <td>${b.effective_weight.toFixed(3)}</td>
+            <td class="bar-cell"><div class="bar" style="width:${barWidth}%" title="${b.contribution.toFixed(4)}"></div></td>
+            <td>${b.contribution.toFixed(4)}</td>
+          </tr>`;
+      }).join('');
+
+      return `
+        <div class="rec-card">
+          <div class="rec-header">
+            <div class="position">${rec.position}</div>
+            <div>
+              <p class="course-title">${c.title}</p>
+              <p class="course-meta">${c.programme_area.replace(/_/g,' ')} · ${levelBadge} · ${c.duration_mins} min · ${paidBadge}</p>
+            </div>
+          </div>
+
+          <div class="reason">${rec.reason}</div>
+
+          <div class="score-row">
+            <span class="badge">score: ${rec.score.toFixed(4)}</span>
+            <span class="badge ${driverClass}">${driverLabel}</span>
+            ${skills}
+          </div>
+
+          <details>
+            <summary>Score breakdown ▸</summary>
+            <p style="margin:0.4rem 0 0.2rem; color:var(--pico-muted-color); font-size:0.82rem;">${rec.reason_detail}</p>
+            <table class="breakdown-table">
+              <thead><tr><th>Component</th><th>Raw</th><th>Weight</th><th>Contribution</th><th>Value</th></tr></thead>
+              <tbody>${breakdownRows}</tbody>
+            </table>
+          </details>
+        </div>`;
+    }
+
+    // Auto-load on page open
+    fetchRecs();
+  </script>
+</body>
+</html>

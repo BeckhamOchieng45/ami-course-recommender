@@ -1,0 +1,132 @@
+{
+  "_meta": {
+    "user_id": "USR-00839",
+    "user_profile": {
+      "role": "corporate_employee",
+      "seniority": "early-career",
+      "industry": "agriculture",
+      "company_size": "micro",
+      "stated_goal": "learn to give and receive feedback constructively",
+      "true_interest": "collaboration and team effectiveness"
+    },
+    "scenario": "Cold-start: zero usage history, survey data only. usage_confidence=0.0 means 100% of scoring weight goes to survey (59%) and work-context (41%). Usage scorer is completely inactive.",
+    "interpretation": "Top results are all workplace/collaboration courses — engine correctly recovered the true_interest from survey tags alone. Score breakdown shows usage_based.contribution=0.0 for every result, confirming cold-start path is active."
+  },
+  "api_response": {
+    "user_id": "USR-00839",
+    "usage_confidence": 0.0,
+    "recommendation_count": 5,
+    "recommendations": [
+      {
+        "position": 1,
+        "course": {
+          "course_id": "CRS-WRK-012",
+          "title": "Building a High-Trust Team Culture",
+          "programme_area": "workplace",
+          "level": "foundational",
+          "duration_mins": 87,
+          "is_paid": false,
+          "skills_taught": ["psychological safety", "cross-functional working", "conflict resolution", "peer feedback", "team collaboration"]
+        },
+        "score": 0.903279,
+        "usage_confidence": 0.0,
+        "reason": "Because you told us you want to improve team collaboration, we suggest \"Building a High-Trust Team Culture\".",
+        "reason_detail": "Your survey identified team collaboration as a priority. \"Building a High-Trust Team Culture\" covers exactly this — it's a practical, hands-on module you can apply directly to learn to give and receive feedback constructively.",
+        "reason_driver": "survey",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.8361, "effective_weight": 0.59, "contribution": 0.4933},
+          {"component": "usage_based",  "raw_score": 0.012,  "effective_weight": 0.0,  "contribution": 0.0},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.41, "contribution": 0.41}
+        ]
+      },
+      {
+        "position": 2,
+        "course": {
+          "course_id": "CRS-WRK-013",
+          "title": "Conflict Resolution in the Workplace",
+          "programme_area": "workplace",
+          "level": "intermediate",
+          "duration_mins": 120,
+          "is_paid": false,
+          "skills_taught": ["cross-functional working", "conflict resolution", "psychological safety", "peer feedback"]
+        },
+        "score": 0.806557,
+        "usage_confidence": 0.0,
+        "reason": "Well-suited for early careers in agriculture looking to learn to give and receive feedback constructively.",
+        "reason_detail": "\"Conflict Resolution in the Workplace\" is pitched at the right level for an early career in agriculture. It addresses practical skills directly relevant to your context.",
+        "reason_driver": "context",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.6721, "effective_weight": 0.59, "contribution": 0.3966},
+          {"component": "usage_based",  "raw_score": 0.024,  "effective_weight": 0.0,  "contribution": 0.0},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.41, "contribution": 0.41}
+        ]
+      },
+      {
+        "position": 3,
+        "course": {
+          "course_id": "CRS-WRK-016",
+          "title": "Creating Psychological Safety in Your Team",
+          "programme_area": "workplace",
+          "level": "foundational",
+          "duration_mins": 49,
+          "is_paid": false,
+          "skills_taught": ["peer feedback", "cross-functional working", "psychological safety", "conflict resolution"]
+        },
+        "score": 0.806557,
+        "usage_confidence": 0.0,
+        "reason": "Well-suited for early careers in agriculture looking to learn to give and receive feedback constructively.",
+        "reason_detail": "\"Creating Psychological Safety in Your Team\" is pitched at the right level for an early career in agriculture. It addresses practical skills directly relevant to your context.",
+        "reason_driver": "context",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.6721, "effective_weight": 0.59, "contribution": 0.3966},
+          {"component": "usage_based",  "raw_score": 0.012,  "effective_weight": 0.0,  "contribution": 0.0},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.41, "contribution": 0.41}
+        ]
+      },
+      {
+        "position": 4,
+        "course": {
+          "course_id": "CRS-WRK-014",
+          "title": "Cross-Functional Collaboration That Works",
+          "programme_area": "workplace",
+          "level": "foundational",
+          "duration_mins": 85,
+          "is_paid": false,
+          "skills_taught": ["cross-functional working", "peer feedback", "team collaboration"]
+        },
+        "score": 0.671148,
+        "usage_confidence": 0.0,
+        "reason": "Well-suited for early careers in agriculture looking to learn to give and receive feedback constructively.",
+        "reason_detail": "\"Cross-Functional Collaboration That Works\" is pitched at the right level for an early career in agriculture. It addresses practical skills directly relevant to your context.",
+        "reason_driver": "context",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.4426, "effective_weight": 0.59, "contribution": 0.2611},
+          {"component": "usage_based",  "raw_score": 0.024,  "effective_weight": 0.0,  "contribution": 0.0},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.41, "contribution": 0.41}
+        ]
+      },
+      {
+        "position": 5,
+        "course": {
+          "course_id": "CRS-WRK-015",
+          "title": "Giving and Receiving Peer Feedback",
+          "programme_area": "workplace",
+          "level": "intermediate",
+          "duration_mins": 102,
+          "is_paid": false,
+          "skills_taught": ["psychological safety", "team collaboration", "peer feedback", "cross-functional working", "decision frameworks"]
+        },
+        "score": 0.657654,
+        "usage_confidence": 0.0,
+        "reason": "Well-suited for early careers in agriculture looking to learn to give and receive feedback constructively.",
+        "reason_detail": "\"Giving and Receiving Peer Feedback\" is pitched at the right level for an early career in agriculture. It addresses practical skills directly relevant to your context.",
+        "reason_driver": "context",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.4198, "effective_weight": 0.59, "contribution": 0.2477},
+          {"component": "usage_based",  "raw_score": 0.0,    "effective_weight": 0.0,  "contribution": 0.0},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.41, "contribution": 0.41}
+        ]
+      }
+    ]
+  }
+}

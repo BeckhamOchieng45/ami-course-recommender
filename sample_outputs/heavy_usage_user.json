@@ -1,0 +1,132 @@
+{
+  "_meta": {
+    "user_id": "USR-00025",
+    "user_profile": {
+      "role": "corporate_employee",
+      "seniority": "early-career",
+      "industry": "hospitality",
+      "company_size": "micro",
+      "stated_goal": "collaborate more effectively with my team and stakeholders",
+      "true_interest": "communication and presentation skills"
+    },
+    "scenario": "Heavy-usage user: 9 completed courses, usage_confidence=1.0. All three scorers carry their full base weights (survey=0.35, usage=0.40, work_context=0.25). Usage signal fully active — recommendations are now driven primarily by behavior.",
+    "interpretation": "Position 1 reason is usage-driven: 'Because you completed Stakeholder Communication for Managers...' — behavior has fully overtaken survey in driving the top recommendation. Position 4 has usage_based.contribution=0.284 with survey_match.contribution=0.0 — a course the user's history predicts they'd value even though their survey didn't mention it. This is what behavior-driven recommendations look like vs cold-start."
+  },
+  "api_response": {
+    "user_id": "USR-00025",
+    "usage_confidence": 1.0,
+    "recommendation_count": 5,
+    "recommendations": [
+      {
+        "position": 1,
+        "course": {
+          "course_id": "CRS-WRK-002",
+          "title": "Presenting With Confidence and Clarity",
+          "programme_area": "workplace",
+          "level": "intermediate",
+          "duration_mins": 128,
+          "is_paid": false,
+          "skills_taught": ["presentation design", "stakeholder communication", "public speaking", "business writing", "active listening"]
+        },
+        "score": 0.744526,
+        "usage_confidence": 1.0,
+        "reason": "Because you completed \"Stakeholder Communication for Managers\", \"Presenting With Confidence and Clarity\" is a natural next step.",
+        "reason_detail": "Learners who completed \"Stakeholder Communication for Managers\" and put those skills into practice typically move on to \"Presenting With Confidence and Clarity\" next. It builds directly on what you've already done.",
+        "reason_driver": "usage",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.5893, "effective_weight": 0.35, "contribution": 0.2062},
+          {"component": "usage_based",  "raw_score": 0.7207, "effective_weight": 0.4,  "contribution": 0.2883},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.25, "contribution": 0.25}
+        ]
+      },
+      {
+        "position": 2,
+        "course": {
+          "course_id": "CRS-WRK-001",
+          "title": "Business Writing That Gets Results",
+          "programme_area": "workplace",
+          "level": "foundational",
+          "duration_mins": 72,
+          "is_paid": false,
+          "skills_taught": ["public speaking", "business writing", "presentation design", "active listening", "stakeholder communication", "delegation frameworks"]
+        },
+        "score": 0.69025,
+        "usage_confidence": 1.0,
+        "reason": "Because you completed \"Stakeholder Communication for Managers\", \"Business Writing That Gets Results\" is a natural next step.",
+        "reason_detail": "Learners who completed \"Stakeholder Communication for Managers\" and put those skills into practice typically move on to \"Business Writing That Gets Results\" next. It builds directly on what you've already done.",
+        "reason_driver": "usage",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.4342, "effective_weight": 0.35, "contribution": 0.152},
+          {"component": "usage_based",  "raw_score": 0.7207, "effective_weight": 0.4,  "contribution": 0.2883},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.25, "contribution": 0.25}
+        ]
+      },
+      {
+        "position": 3,
+        "course": {
+          "course_id": "CRS-WRK-006",
+          "title": "Writing Persuasive Proposals and Reports",
+          "programme_area": "workplace",
+          "level": "intermediate",
+          "duration_mins": 101,
+          "is_paid": false,
+          "skills_taught": ["active listening", "public speaking", "stakeholder communication", "business writing"]
+        },
+        "score": 0.665638,
+        "usage_confidence": 1.0,
+        "reason": "Well-suited for early careers in hospitality looking to collaborate more effectively with my team and stakeholders.",
+        "reason_detail": "\"Writing Persuasive Proposals and Reports\" is pitched at the right level for an early career in hospitality. It addresses practical skills directly relevant to your context.",
+        "reason_driver": "context",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.5357, "effective_weight": 0.35, "contribution": 0.1875},
+          {"component": "usage_based",  "raw_score": 0.5703, "effective_weight": 0.4,  "contribution": 0.2281},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.25, "contribution": 0.25}
+        ]
+      },
+      {
+        "position": 4,
+        "course": {
+          "course_id": "CRS-LDR-014",
+          "title": "Process Improvement in a Growing Business",
+          "programme_area": "leadership",
+          "level": "advanced",
+          "duration_mins": 118,
+          "is_paid": false,
+          "skills_taught": ["systems thinking", "organisational design", "culture change", "balance sheet reading"]
+        },
+        "score": 0.369138,
+        "usage_confidence": 1.0,
+        "reason": "\"Process Improvement in a Growing Business\" is popular with corporate employees in hospitality at a similar stage.",
+        "reason_detail": "Other corporate employees in hospitality with goals similar to yours have found \"Process Improvement in a Growing Business\" valuable for collaborating more effectively with my team and stakeholders.",
+        "reason_driver": "cohort",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.0,    "effective_weight": 0.35, "contribution": 0.0},
+          {"component": "usage_based",  "raw_score": 0.7103, "effective_weight": 0.4,  "contribution": 0.2841},
+          {"component": "work_context", "raw_score": 0.34,   "effective_weight": 0.25, "contribution": 0.085}
+        ]
+      },
+      {
+        "position": 5,
+        "course": {
+          "course_id": "CRS-ENT-028",
+          "title": "Building a One-Page Business Plan",
+          "programme_area": "entrepreneurship",
+          "level": "foundational",
+          "duration_mins": 62,
+          "is_paid": false,
+          "skills_taught": ["strategic planning", "business model canvas", "growth planning", "competitive strategy", "business writing"]
+        },
+        "score": 0.332749,
+        "usage_confidence": 1.0,
+        "reason": "Well-suited for early careers in hospitality looking to collaborate more effectively with my team and stakeholders.",
+        "reason_detail": "\"Building a One-Page Business Plan\" is pitched at the right level for an early career in hospitality. It addresses practical skills directly relevant to your context.",
+        "reason_driver": "context",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.1121, "effective_weight": 0.35, "contribution": 0.0392},
+          {"component": "usage_based",  "raw_score": 0.1088, "effective_weight": 0.4,  "contribution": 0.0435},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.25, "contribution": 0.25}
+        ]
+      }
+    ]
+  }
+}

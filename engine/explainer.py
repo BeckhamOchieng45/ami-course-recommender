@@ -85,6 +85,7 @@ def _get_best_prior_course_title(user: User, course: Course) -> str | None:
     """
     Return the title of the completed course most similar to the candidate,
     used to build usage-driven reason strings.
+    Excludes the candidate course itself to avoid circular reasons.
     """
     completed_events = UsageEvent.objects.filter(
         user=user,
@@ -98,6 +99,9 @@ def _get_best_prior_course_title(user: User, course: Course) -> str | None:
 
     for event in completed_events:
         if not event.quiz_score or event.quiz_score < 60:
+            continue
+        # Never say "because you completed X, we suggest X"
+        if event.course.course_id == course.course_id:
             continue
         prior_tags = set(s.lower() for s in event.course.skills_taught)
         if not prior_tags:

@@ -1,0 +1,132 @@
+{
+  "_meta": {
+    "user_id": "USR-00004",
+    "user_profile": {
+      "role": "sme_manager",
+      "seniority": "sme-manager",
+      "industry": "manufacturing",
+      "company_size": "small",
+      "stated_goal": "set clear performance targets and hold people accountable",
+      "true_interest": "business planning and strategy"
+    },
+    "scenario": "In-between user: 3 completed courses, usage_confidence=0.6. All three scorers are active. Weight distribution: survey=0.446 (base 0.35 + 0.096 redistributed), usage=0.24 (0.40 * 0.6), work_context=0.314 (base 0.25 + 0.064 redistributed). This shows the continuous cold-start blend mid-transition.",
+    "interpretation": "Notice that work_context still contributes heavily (0.314 effective weight vs usage at 0.24) because usage_confidence is only 60%. The top recommendation combines all three signals with a visible contribution from each — the hallmark of a 'blended' mid-journey user. The score breakdown proves no single signal is dominating."
+  },
+  "api_response": {
+    "user_id": "USR-00004",
+    "usage_confidence": 0.6,
+    "recommendation_count": 5,
+    "recommendations": [
+      {
+        "position": 1,
+        "course": {
+          "course_id": "CRS-ENT-033",
+          "title": "Growth Planning: From Survival to Scale",
+          "programme_area": "entrepreneurship",
+          "level": "advanced",
+          "duration_mins": 157,
+          "is_paid": false,
+          "skills_taught": ["business model canvas", "growth planning", "competitive strategy", "profit and loss statements"]
+        },
+        "score": 0.66508,
+        "usage_confidence": 0.6,
+        "reason": "Well-suited for sme managers in manufacturing looking to set clear performance targets and hold people accountable.",
+        "reason_detail": "\"Growth Planning: From Survival to Scale\" is pitched at the right level for a sme manager in manufacturing. It addresses practical skills directly relevant to your context.",
+        "reason_driver": "context",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.403,  "effective_weight": 0.446, "contribution": 0.1797},
+          {"component": "usage_based",  "raw_score": 0.714,  "effective_weight": 0.24,  "contribution": 0.1713},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.314, "contribution": 0.314}
+        ]
+      },
+      {
+        "position": 2,
+        "course": {
+          "course_id": "CRS-ENT-030",
+          "title": "Market Analysis for Growing Businesses",
+          "programme_area": "entrepreneurship",
+          "level": "advanced",
+          "duration_mins": 90,
+          "is_paid": false,
+          "skills_taught": ["market analysis", "competitive strategy", "strategic planning", "growth planning"]
+        },
+        "score": 0.58425,
+        "usage_confidence": 0.6,
+        "reason": "Well-suited for sme managers in manufacturing looking to set clear performance targets and hold people accountable.",
+        "reason_detail": "\"Market Analysis for Growing Businesses\" is pitched at the right level for a sme manager in manufacturing. It addresses practical skills directly relevant to your context.",
+        "reason_driver": "context",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.4478, "effective_weight": 0.446, "contribution": 0.1997},
+          {"component": "usage_based",  "raw_score": 0.294,  "effective_weight": 0.24,  "contribution": 0.0705},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.314, "contribution": 0.314}
+        ]
+      },
+      {
+        "position": 3,
+        "course": {
+          "course_id": "CRS-ENT-029",
+          "title": "Business Model Canvas: Practical Application",
+          "programme_area": "entrepreneurship",
+          "level": "intermediate",
+          "duration_mins": 90,
+          "is_paid": false,
+          "skills_taught": ["competitive strategy", "growth planning", "strategic planning", "performance reviews"]
+        },
+        "score": 0.576399,
+        "usage_confidence": 0.6,
+        "reason": "Well-suited for sme managers in manufacturing looking to set clear performance targets and hold people accountable.",
+        "reason_detail": "\"Business Model Canvas: Practical Application\" is pitched at the right level for a sme manager in manufacturing. It addresses practical skills directly relevant to your context.",
+        "reason_driver": "context",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.4478, "effective_weight": 0.446, "contribution": 0.1997},
+          {"component": "usage_based",  "raw_score": 0.2612, "effective_weight": 0.24,  "contribution": 0.0627},
+          {"component": "work_context", "raw_score": 1.0,    "effective_weight": 0.314, "contribution": 0.314}
+        ]
+      },
+      {
+        "position": 4,
+        "course": {
+          "course_id": "CRS-ENT-031",
+          "title": "Strategic Planning for SME Leaders",
+          "programme_area": "entrepreneurship",
+          "level": "foundational",
+          "duration_mins": 80,
+          "is_paid": false,
+          "skills_taught": ["competitive strategy", "strategic planning", "business model canvas", "growth planning", "market analysis"]
+        },
+        "score": 0.534242,
+        "usage_confidence": 0.6,
+        "reason": "Because you told us you want to improve growth planning, we suggest \"Strategic Planning for SME Leaders\".",
+        "reason_detail": "Your survey identified growth planning as a priority. \"Strategic Planning for SME Leaders\" covers exactly this — it's a practical, hands-on module you can apply directly to set clear performance targets and hold people accountable.",
+        "reason_driver": "survey",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.5522, "effective_weight": 0.446, "contribution": 0.2463},
+          {"component": "usage_based",  "raw_score": 0.4409, "effective_weight": 0.24,  "contribution": 0.1058},
+          {"component": "work_context", "raw_score": 0.58,   "effective_weight": 0.314, "contribution": 0.1821}
+        ]
+      },
+      {
+        "position": 5,
+        "course": {
+          "course_id": "CRS-ENT-028",
+          "title": "Building a One-Page Business Plan",
+          "programme_area": "entrepreneurship",
+          "level": "foundational",
+          "duration_mins": 62,
+          "is_paid": false,
+          "skills_taught": ["strategic planning", "business model canvas", "growth planning", "competitive strategy", "business writing"]
+        },
+        "score": 0.517442,
+        "usage_confidence": 0.6,
+        "reason": "Because you told us you want to improve growth planning, we suggest \"Building a One-Page Business Plan\".",
+        "reason_detail": "Your survey identified growth planning as a priority. \"Building a One-Page Business Plan\" covers exactly this — it's a practical, hands-on module you can apply directly to set clear performance targets and hold people accountable.",
+        "reason_driver": "survey",
+        "score_breakdown": [
+          {"component": "survey_match", "raw_score": 0.5522, "effective_weight": 0.446, "contribution": 0.2463},
+          {"component": "usage_based",  "raw_score": 0.3709, "effective_weight": 0.24,  "contribution": 0.089},
+          {"component": "work_context", "raw_score": 0.58,   "effective_weight": 0.314, "contribution": 0.1821}
+        ]
+      }
+    ]
+  }
+}
