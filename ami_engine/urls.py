@@ -16,8 +16,12 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/", include("ami_course_recommendations.urls")),
+    # Serve the single-page UI at the root
+    path("", RedirectView.as_view(url="/ui/index.html", permanent=False)),
 ]
