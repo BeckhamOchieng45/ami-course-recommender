@@ -10,36 +10,22 @@
       theme: {
         extend: {
           colors: {
-            ami: {
-              50:  '#f0f7ff',
-              100: '#e0effe',
-              200: '#baddfd',
-              300: '#7ec2fb',
-              400: '#399ef7',
-              500: '#0f7fe8',
-              600: '#0062c6',
-              700: '#004ea0',
-              800: '#044384',
-              900: '#0a3a6d',
-              950: '#072449',
-            }
+            ami: { 50:'#f0f7ff',100:'#e0effe',200:'#baddfd',300:'#7ec2fb',
+                   400:'#399ef7',500:'#0f7fe8',600:'#0062c6',700:'#004ea0',
+                   800:'#044384',900:'#0a3a6d',950:'#072449' }
           },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-          },
+          fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
           keyframes: {
-            'fade-up': {
-              '0%':   { opacity: '0', transform: 'translateY(16px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            'shimmer': {
-              '0%':   { backgroundPosition: '-400px 0' },
-              '100%': { backgroundPosition: '400px 0' },
-            }
+            'fade-up':  { '0%':{opacity:'0',transform:'translateY(16px)'},'100%':{opacity:'1',transform:'translateY(0)'} },
+            'fade-in':  { '0%':{opacity:'0'},'100%':{opacity:'1'} },
+            'shimmer':  { '0%':{backgroundPosition:'-400px 0'},'100%':{backgroundPosition:'400px 0'} },
+            'slide-in': { '0%':{opacity:'0',transform:'translateX(20px)'},'100%':{opacity:'1',transform:'translateX(0)'} },
           },
           animation: {
-            'fade-up': 'fade-up 0.35s ease both',
-            'shimmer': 'shimmer 1.4s linear infinite',
+            'fade-up':'fade-up 0.35s ease both',
+            'fade-in':'fade-in 0.2s ease both',
+            'shimmer':'shimmer 1.4s linear infinite',
+            'slide-in':'slide-in 0.3s ease both',
           }
         }
       }
@@ -48,407 +34,644 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    /* Shimmer skeleton */
-    .skeleton {
-      background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
-      background-size: 400px 100%;
-      animation: shimmer 1.4s linear infinite;
-      border-radius: 8px;
+    .skeleton { background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);
+      background-size:400px 100%; animation:shimmer 1.4s linear infinite; border-radius:8px; }
+    .bar-fill { transition: width 0.9s cubic-bezier(0.4,0,0.2,1); }
+    .card-0{animation-delay:0ms}.card-1{animation-delay:60ms}.card-2{animation-delay:120ms}
+    .card-3{animation-delay:180ms}.card-4{animation-delay:240ms}
+    .conf-cold    { background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e; }
+    .conf-blended { background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af; }
+    .conf-full    { background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46; }
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:#f1f5f9}
+    ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+    details summary::-webkit-details-marker{display:none}
+    /* Why panel overlay */
+    #why-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:40;
+      display:none;align-items:flex-end;justify-content:center;}
+    #why-overlay.open{display:flex;}
+    #why-panel{max-height:88vh;width:100%;max-width:680px;overflow-y:auto;
+      border-radius:1.25rem 1.25rem 0 0;background:#fff;
+      animation:fade-up .3s ease both;padding:0 0 2rem 0;}
+    @media(min-width:640px){
+      #why-overlay{align-items:center;}
+      #why-panel{max-height:85vh;border-radius:1.25rem;margin:1rem;}
     }
-    /* Score bar fill animation */
-    .bar-fill { transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
-    /* Card stagger delay */
-    .card-0 { animation-delay: 0ms; }
-    .card-1 { animation-delay: 60ms; }
-    .card-2 { animation-delay: 120ms; }
-    .card-3 { animation-delay: 180ms; }
-    .card-4 { animation-delay: 240ms; }
-    /* Confidence pill gradient */
-    .conf-cold    { background: linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
-    .conf-blended { background: linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e40af; }
-    .conf-full    { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
-    /* Custom scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-    /* Details/summary reset */
-    details summary::-webkit-details-marker { display: none; }
+    /* Stacked signal bar */
+    .signal-bar-segment { height:100%; display:inline-block; transition:width 0.9s cubic-bezier(0.4,0,0.2,1); }
+    /* Tooltip */
+    .tip { position:relative; cursor:help; }
+    .tip:hover::after { content:attr(data-tip); position:absolute; bottom:calc(100% + 6px); left:50%;
+      transform:translateX(-50%); background:#0f172a; color:#f8fafc; font-size:11px; padding:4px 8px;
+      border-radius:6px; white-space:nowrap; z-index:99; pointer-events:none; }
+    /* Rec card selected ring */
+    .rec-card.selected { border-color:#0062c6!important; box-shadow:0 0 0 3px rgba(0,98,198,.12)!important; }
   </style>
 </head>
-
 <body class="h-full bg-slate-50 font-sans text-slate-800 antialiased">
 
-  <!-- ── Header ──────────────────────────────────────────────────── -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
-    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <!-- AMI wordmark -->
-        <div class="w-9 h-9 rounded-xl bg-ami-600 flex items-center justify-center shadow-sm flex-shrink-0">
-          <span class="text-white font-extrabold text-sm tracking-tight">AMI</span>
-        </div>
-        <div>
-          <h1 class="text-base font-bold text-slate-900 leading-none">Course Recommendations</h1>
-          <p class="text-xs text-slate-500 mt-0.5">AI Coach Bot · Learning Engine</p>
-        </div>
+<!-- ── Why-this? overlay panel ──────────────────────────────────────── -->
+<div id="why-overlay" onclick="closeWhy(event)">
+  <div id="why-panel">
+    <!-- Header -->
+    <div class="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+      <div>
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Why this course?</p>
+        <h3 id="why-title" class="text-base font-bold text-slate-900 mt-0.5 leading-snug"></h3>
       </div>
-      <!-- Sample user quick-links -->
-      <div class="hidden sm:flex items-center gap-1 text-xs text-slate-500">
-        <span class="mr-1 font-medium">Try:</span>
-        <button onclick="loadUser('USR-00839')" class="px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-ami-50 hover:border-ami-300 hover:text-ami-700 transition-all text-slate-600 font-medium">Cold-start</button>
-        <button onclick="loadUser('USR-00004')" class="px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-ami-50 hover:border-ami-300 hover:text-ami-700 transition-all text-slate-600 font-medium">In-between</button>
-        <button onclick="loadUser('USR-00025')" class="px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-ami-50 hover:border-ami-300 hover:text-ami-700 transition-all text-slate-600 font-medium">Heavy usage</button>
+      <button onclick="closeWhy()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors flex-shrink-0 ml-3">
+        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div id="why-body" class="px-6 pt-5 space-y-6"></div>
+  </div>
+</div>
+
+<!-- ── Header ──────────────────────────────────────────────────────── -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-ami-600 flex items-center justify-center shadow-sm flex-shrink-0">
+        <span class="text-white font-extrabold text-sm tracking-tight">AMI</span>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-slate-900 leading-none">Course Recommendations</h1>
+        <p class="text-xs text-slate-500 mt-0.5">AI Coach Bot · Learning Engine</p>
       </div>
     </div>
-  </header>
+    <div class="hidden sm:flex items-center gap-1 text-xs">
+      <span class="mr-1 font-medium text-slate-400">Try:</span>
+      <button onclick="loadUser('USR-00839')" class="px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-ami-50 hover:border-ami-300 hover:text-ami-700 transition-all text-slate-600 font-medium">Cold-start</button>
+      <button onclick="loadUser('USR-00004')" class="px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-ami-50 hover:border-ami-300 hover:text-ami-700 transition-all text-slate-600 font-medium">In-between</button>
+      <button onclick="loadUser('USR-00025')" class="px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-ami-50 hover:border-ami-300 hover:text-ami-700 transition-all text-slate-600 font-medium">Heavy usage</button>
+    </div>
+  </div>
+</header>
 
-  <!-- ── Search bar ───────────────────────────────────────────────── -->
-  <div class="bg-white border-b border-slate-100">
-    <div class="max-w-5xl mx-auto px-6 py-5">
-      <div class="flex flex-col sm:flex-row gap-3">
-        <!-- User ID -->
-        <div class="flex-1 relative">
-          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Learner ID</label>
-          <div class="relative">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-            <input id="user-id" type="text" placeholder="e.g. USR-00001" value="USR-00839"
-              class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ami-500 focus:border-transparent focus:bg-white transition-all"
-              onkeydown="if(event.key==='Enter') fetchRecs()" />
+<!-- ── Search bar ────────────────────────────────────────────────────── -->
+<div class="bg-white border-b border-slate-100">
+  <div class="max-w-6xl mx-auto px-6 py-5">
+    <div class="flex flex-col sm:flex-row gap-3">
+      <div class="flex-1">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Learner ID</label>
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+          <input id="user-id" type="text" placeholder="e.g. USR-00001" value="USR-00839"
+            class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ami-500 focus:border-transparent focus:bg-white transition-all"
+            onkeydown="if(event.key==='Enter') fetchRecs()" />
+        </div>
+      </div>
+      <div class="w-full sm:w-32">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Results</label>
+        <select id="n-param" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-ami-500 focus:bg-white transition-all appearance-none">
+          <option value="3">3 courses</option>
+          <option value="5" selected>5 courses</option>
+          <option value="10">10 courses</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button onclick="fetchRecs()" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-ami-600 hover:bg-ami-700 active:bg-ami-800 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+          </svg>
+          Get Recommendations
+        </button>
+      </div>
+    </div>
+    <p id="error-msg" class="hidden mt-3 text-sm text-red-600 flex items-center gap-1.5">
+      <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+      </svg>
+      <span id="error-text"></span>
+    </p>
+  </div>
+</div>
+
+<!-- ── Main layout: sidebar + cards ─────────────────────────────────── -->
+<main class="max-w-6xl mx-auto px-6 py-8">
+  <div class="flex gap-6 items-start">
+    <!-- Cards column -->
+    <div class="flex-1 min-w-0">
+      <div id="results"></div>
+    </div>
+    <!-- Sidebar (hidden until results load) -->
+    <div id="sidebar" class="hidden lg:block w-72 flex-shrink-0 space-y-4 sticky top-24"></div>
+  </div>
+</main>
+
+<script>
+// ── Constants ────────────────────────────────────────────────────
+const DRIVER_CONFIG = {
+  survey:  { label:'Survey match',   icon:'📝', bg:'bg-emerald-50',  text:'text-emerald-700',  border:'border-emerald-200',  bar:'bg-emerald-500',  hex:'#10b981',
+    explain:'The learner\'s stated goals and skill gaps in their onboarding survey matched the skills this course teaches.' },
+  usage:   { label:'Usage-based',    icon:'📈', bg:'bg-blue-50',     text:'text-blue-700',     border:'border-blue-200',     bar:'bg-blue-500',     hex:'#3b82f6',
+    explain:'The course content is similar to courses this learner has already completed and engaged with deeply.' },
+  context: { label:'Work context',   icon:'🏢', bg:'bg-amber-50',    text:'text-amber-700',    border:'border-amber-200',    bar:'bg-amber-500',    hex:'#f59e0b',
+    explain:'The course level and programme area match this learner\'s seniority and industry.' },
+  cohort:  { label:'Cohort popular', icon:'👥', bg:'bg-violet-50',   text:'text-violet-700',   border:'border-violet-200',   bar:'bg-violet-500',   hex:'#8b5cf6',
+    explain:'Learners with the same role and industry at a similar stage have completed this course.' },
+  fallback:{ label:'General fit',    icon:'✦',  bg:'bg-slate-100',   text:'text-slate-600',    border:'border-slate-200',    bar:'bg-slate-400',    hex:'#94a3b8',
+    explain:'A strong general match based on available profile data.' },
+};
+
+const LEVEL_CONFIG = {
+  foundational:{ label:'Foundational', dot:'bg-emerald-400', text:'text-emerald-700', bg:'bg-emerald-50' },
+  intermediate:{ label:'Intermediate', dot:'bg-amber-400',   text:'text-amber-700',   bg:'bg-amber-50' },
+  advanced:    { label:'Advanced',     dot:'bg-rose-400',    text:'text-rose-700',    bg:'bg-rose-50' },
+};
+
+const AREA_LABELS = {
+  entrepreneurship:'Entrepreneurship & Business Growth',
+  leadership:'Executive Leadership & Management',
+  workplace:'Workplace & Professional Growth',
+  ai_strategy:'AI Strategy',
+  womens_leadership:"Women's Leadership",
+};
+
+const COMPONENT_LABELS = {
+  survey_match:  { label:'Survey match',  driver:'survey'  },
+  usage_based:   { label:'Usage-based',   driver:'usage'   },
+  work_context:  { label:'Work context',  driver:'context' },
+};
+
+// State
+let _lastData = null;
+let _selectedIdx = null;
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function loadUser(uid) { document.getElementById('user-id').value=uid; fetchRecs(); return false; }
+
+// ── Skeletons ────────────────────────────────────────────────────
+function showSkeletons(n=3) {
+  return Array.from({length:n},()=>`
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-4">
+      <div class="flex gap-4"><div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
+        <div class="flex-1 space-y-3">
+          <div class="skeleton h-5 w-3/4 rounded-lg"></div>
+          <div class="skeleton h-3.5 w-1/2 rounded-lg"></div>
+          <div class="skeleton h-14 w-full rounded-xl mt-2"></div>
+          <div class="skeleton h-3 w-full rounded-full mt-3"></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Stacked signal bar ───────────────────────────────────────────
+function renderSignalBar(breakdown, totalScore) {
+  const segments = breakdown.map(b => {
+    const compKey = Object.keys(COMPONENT_LABELS).find(k => b.component.includes(k.replace('_match','').replace('_based','').replace('work_','work')));
+    const driverKey = compKey ? COMPONENT_LABELS[compKey].driver : 'fallback';
+    const cfg = DRIVER_CONFIG[driverKey];
+    const pct = totalScore > 0 ? ((b.contribution / totalScore) * 100).toFixed(1) : 0;
+    return { cfg, pct, label: cfg.label, contribution: b.contribution };
+  }).filter(s => parseFloat(s.pct) > 0);
+
+  const bars = segments.map(s =>
+    `<div class="signal-bar-segment tip rounded-full" style="width:0%;background:${s.cfg.hex}"
+       data-tip="${s.label}: ${(parseFloat(s.pct)).toFixed(0)}% of score"
+       data-width="${s.pct}%"></div>`
+  ).join('');
+
+  return `<div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex mt-3" id="sbar-${Math.random().toString(36).slice(2)}">${bars}</div>`;
+}
+</script>
+
+<script>
+// ── Recommendation card ──────────────────────────────────────────
+function renderRec(rec, idx) {
+  const c = rec.course;
+  const driver = DRIVER_CONFIG[rec.reason_driver] || DRIVER_CONFIG.fallback;
+  const level = LEVEL_CONFIG[c.level] || {label:c.level,dot:'bg-slate-400',text:'text-slate-600',bg:'bg-slate-50'};
+  const area = AREA_LABELS[c.programme_area] || c.programme_area.replace(/_/g,' ');
+  const pct = Math.round(rec.score * 100);
+  const isTop = idx === 0;
+  const signalBar = renderSignalBar(rec.score_breakdown, rec.score);
+
+  const skills = c.skills_taught.slice(0,4).map(s=>
+    `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">${escHtml(s)}</span>`
+  ).join('');
+
+  return `
+    <div class="rec-card group relative bg-white rounded-2xl border ${isTop?'border-ami-200 shadow-md shadow-ami-100/50':'border-slate-100 shadow-sm'}
+                hover:shadow-lg hover:border-ami-200 transition-all duration-300 mb-4 overflow-hidden
+                animate-fade-up card-${idx} cursor-pointer" onclick="openWhy(${idx})" data-idx="${idx}">
+      ${isTop?`<div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-ami-500 to-ami-400"></div>`:''}
+      <div class="p-5">
+        <!-- Header row -->
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-11 h-11 rounded-xl ${isTop?'bg-ami-600 shadow-sm':'bg-slate-100'}
+                      flex items-center justify-center">
+            <span class="text-lg font-extrabold ${isTop?'text-white':'text-slate-400'}">${rec.position}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2">
+              <h2 class="text-sm font-bold text-slate-900 leading-snug">${escHtml(c.title)}</h2>
+              <div class="flex-shrink-0 relative w-8 h-8 ml-1">
+                <svg class="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
+                  <circle cx="16" cy="16" r="13" fill="none" stroke="#e2e8f0" stroke-width="3"/>
+                  <circle cx="16" cy="16" r="13" fill="none" stroke="${isTop?'#0062c6':'#94a3b8'}"
+                    stroke-width="3" stroke-dasharray="${(pct/100)*81.7} 81.7" stroke-linecap="round"/>
+                </svg>
+                <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-slate-600">${pct}</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+              <span class="inline-flex items-center gap-1 text-xs font-medium ${level.bg} ${level.text} px-1.5 py-0.5 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full ${level.dot}"></span>${level.label}
+              </span>
+              <span class="text-xs text-slate-400">·</span>
+              <span class="text-xs text-slate-500">${c.duration_mins} min</span>
+              <span class="text-xs text-slate-400">·</span>
+              <span class="text-xs text-slate-500 truncate max-w-[140px]">${escHtml(area)}</span>
+            </div>
           </div>
         </div>
-        <!-- N param -->
-        <div class="w-full sm:w-32">
-          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Results</label>
-          <select id="n-param"
-            class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-ami-500 focus:border-transparent focus:bg-white transition-all appearance-none">
-            <option value="3">3 courses</option>
-            <option value="5" selected>5 courses</option>
-            <option value="10">10 courses</option>
-          </select>
+
+        <!-- Reason -->
+        <div class="mt-3 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-2.5">
+          <div class="flex items-start gap-2">
+            <span class="text-base mt-0.5 flex-shrink-0">${driver.icon}</span>
+            <p class="text-xs text-slate-700 leading-relaxed">${escHtml(rec.coaching_reason||rec.reason)}</p>
+          </div>
         </div>
-        <!-- Submit -->
-        <div class="flex items-end">
-          <button onclick="fetchRecs()"
-            class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-ami-600 hover:bg-ami-700 active:bg-ami-800 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-            Get Recommendations
+
+        <!-- Signal bar -->
+        ${signalBar}
+
+        <!-- Footer: skills + why button -->
+        <div class="flex items-center justify-between mt-3 gap-2">
+          <div class="flex flex-wrap gap-1">${skills}</div>
+          <button class="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-ami-600 hover:text-ami-800 bg-ami-50 hover:bg-ami-100 px-3 py-1.5 rounded-full transition-all border border-ami-200 group-hover:border-ami-300">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Why this?
           </button>
         </div>
       </div>
-      <!-- Error message -->
-      <p id="error-msg" class="hidden mt-3 text-sm text-red-600 flex items-center gap-1.5">
-        <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-        <span id="error-text"></span>
-      </p>
-    </div>
-  </div>
+    </div>`;
+}
 
-  <!-- ── Main content ─────────────────────────────────────────────── -->
-  <main class="max-w-5xl mx-auto px-6 py-8">
-    <div id="results"></div>
-  </main>
-
-  <script>
-  // ── Helpers ─────────────────────────────────────────────────────
-  const DRIVER_CONFIG = {
-    survey:  { label: 'Survey match',   icon: '📝', bg: 'bg-emerald-50',  text: 'text-emerald-700',  border: 'border-emerald-200', bar: 'bg-emerald-500' },
-    usage:   { label: 'Usage-based',    icon: '📈', bg: 'bg-blue-50',     text: 'text-blue-700',     border: 'border-blue-200',   bar: 'bg-blue-500'    },
-    context: { label: 'Work context',   icon: '🏢', bg: 'bg-amber-50',    text: 'text-amber-700',    border: 'border-amber-200',  bar: 'bg-amber-500'   },
-    cohort:  { label: 'Cohort popular', icon: '👥', bg: 'bg-violet-50',   text: 'text-violet-700',   border: 'border-violet-200', bar: 'bg-violet-500'  },
-    fallback:{ label: 'General fit',    icon: '✦',  bg: 'bg-slate-100',   text: 'text-slate-600',    border: 'border-slate-200',  bar: 'bg-slate-400'   },
-  };
-
-  const LEVEL_CONFIG = {
-    foundational: { label: 'Foundational', dot: 'bg-emerald-400', text: 'text-emerald-700', bg: 'bg-emerald-50' },
-    intermediate: { label: 'Intermediate', dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'bg-amber-50'   },
-    advanced:     { label: 'Advanced',     dot: 'bg-rose-400',    text: 'text-rose-700',     bg: 'bg-rose-50'    },
-  };
-
-  const AREA_LABELS = {
-    entrepreneurship: 'Entrepreneurship & Business Growth',
-    leadership:       'Executive Leadership & Management',
-    workplace:        'Workplace & Professional Growth',
-    ai_strategy:      'AI Strategy',
-    womens_leadership:"Women's Leadership",
-  };
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function loadUser(uid) {
-    document.getElementById('user-id').value = uid;
-    fetchRecs();
-    return false;
-  }
-
-  // ── Skeleton loading state ───────────────────────────────────────
-  function showSkeletons(n = 3) {
-    const skels = Array.from({ length: n }, () => `
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-4">
-        <div class="flex gap-4">
-          <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
-          <div class="flex-1 space-y-3">
-            <div class="skeleton h-5 w-3/4 rounded-lg"></div>
-            <div class="skeleton h-3.5 w-1/2 rounded-lg"></div>
-            <div class="skeleton h-16 w-full rounded-xl mt-2"></div>
-            <div class="flex gap-2 mt-2">
-              <div class="skeleton h-6 w-24 rounded-full"></div>
-              <div class="skeleton h-6 w-20 rounded-full"></div>
-              <div class="skeleton h-6 w-28 rounded-full"></div>
-            </div>
-          </div>
+// ── Meta banner ──────────────────────────────────────────────────
+function renderMeta(data) {
+  const conf = data.usage_confidence;
+  const confPct = Math.round(conf * 100);
+  let confClass = conf===0?'conf-cold':conf<1?'conf-blended':'conf-full';
+  let confLabel = conf===0?'Cold-start':conf<1?`${confPct}% behavior-driven`:'Fully behavior-driven';
+  let confDesc  = conf===0?'No usage history yet — driven entirely by survey and work context.'
+                 :conf<1?`${confPct}% of scoring weight comes from actual course completion history.`
+                 :'Full usage history available — recommendations reflect proven learning patterns.';
+  return `
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4 animate-fade-up">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Learner</p>
+          <h2 class="text-base font-bold text-slate-900 mt-0.5">${escHtml(data.user_id)}</h2>
         </div>
+        <span class="${confClass} text-xs font-bold px-3 py-1 rounded-full">${confLabel}</span>
       </div>
-    `).join('');
-    return skels;
-  }
-
-  // ── Score breakdown row ──────────────────────────────────────────
-  function renderBreakdownRow(b) {
-    const driver = Object.keys(DRIVER_CONFIG).find(k =>
-      b.component.includes(k.replace('-','_')) ||
-      (k === 'survey' && b.component.includes('survey')) ||
-      (k === 'usage' && b.component.includes('usage')) ||
-      (k === 'context' && b.component.includes('work'))
-    ) || 'fallback';
-    const cfg = DRIVER_CONFIG[driver];
-    const pct = Math.min(100, (b.contribution / 0.4) * 100);
-    const score100 = (b.raw_score * 100).toFixed(0);
-
-    return `
-      <div class="flex items-center gap-3 py-2">
-        <div class="w-28 flex-shrink-0">
-          <span class="text-xs font-medium text-slate-600 capitalize">${escHtml(b.component.replace(/_/g,' '))}</span>
-        </div>
-        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-          <div class="bar-fill h-full ${cfg.bar} rounded-full" style="width:0%" data-width="${pct.toFixed(1)}%"></div>
-        </div>
-        <div class="w-10 text-right text-xs font-semibold text-slate-500">${score100}%</div>
-        <div class="w-16 text-right text-xs font-mono text-slate-400">${b.contribution.toFixed(3)}</div>
-      </div>`;
-  }
-
-  // ── Individual recommendation card ──────────────────────────────
-  function renderRec(rec, idx) {
-    const c = rec.course;
-    const driver = DRIVER_CONFIG[rec.reason_driver] || DRIVER_CONFIG.fallback;
-    const level = LEVEL_CONFIG[c.level] || { label: c.level, dot: 'bg-slate-400', text: 'text-slate-600', bg: 'bg-slate-50' };
-    const area = AREA_LABELS[c.programme_area] || c.programme_area.replace(/_/g,' ');
-    const pct = Math.round(rec.score * 100);
-    const isTop = idx === 0;
-
-    const skills = c.skills_taught.slice(0, 5).map(s =>
-      `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">${escHtml(s)}</span>`
-    ).join('');
-
-    const breakdownRows = rec.score_breakdown.map(renderBreakdownRow).join('');
-
-    return `
-      <div class="group relative bg-white rounded-2xl border ${isTop ? 'border-ami-200 shadow-md shadow-ami-100/50' : 'border-slate-100 shadow-sm'} 
-                  hover:shadow-lg hover:border-ami-200 transition-all duration-300 mb-4 overflow-hidden
-                  animate-fade-up card-${idx}">
-
-        ${isTop ? `<div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-ami-500 to-ami-400"></div>` : ''}
-
-        <div class="p-6">
-          <!-- Card header -->
-          <div class="flex items-start gap-4">
-
-            <!-- Position badge -->
-            <div class="flex-shrink-0 w-12 h-12 rounded-xl ${isTop ? 'bg-ami-600 shadow-sm shadow-ami-200' : 'bg-slate-100'} 
-                        flex items-center justify-center transition-all">
-              <span class="text-xl font-extrabold ${isTop ? 'text-white' : 'text-slate-400'}">${rec.position}</span>
-            </div>
-
-            <!-- Title + meta -->
-            <div class="flex-1 min-w-0">
-              <div class="flex flex-wrap items-start justify-between gap-2">
-                <h2 class="text-base font-bold text-slate-900 leading-snug">${escHtml(c.title)}</h2>
-                <!-- Score pill -->
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <div class="relative w-8 h-8">
-                    <svg class="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
-                      <circle cx="16" cy="16" r="13" fill="none" stroke="#e2e8f0" stroke-width="3"/>
-                      <circle cx="16" cy="16" r="13" fill="none" stroke="${isTop ? '#0062c6' : '#94a3b8'}"
-                        stroke-width="3" stroke-dasharray="${(pct / 100) * 81.7} 81.7"
-                        stroke-linecap="round"/>
-                    </svg>
-                    <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-slate-600">${pct}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Course meta chips -->
-              <div class="flex flex-wrap items-center gap-2 mt-2">
-                <span class="inline-flex items-center gap-1 text-xs font-medium ${level.bg} ${level.text} px-2 py-0.5 rounded-full">
-                  <span class="w-1.5 h-1.5 rounded-full ${level.dot}"></span>
-                  ${level.label}
-                </span>
-                <span class="text-xs text-slate-400">·</span>
-                <span class="text-xs text-slate-500 font-medium">${escHtml(area)}</span>
-                <span class="text-xs text-slate-400">·</span>
-                <span class="text-xs text-slate-500">${c.duration_mins} min</span>
-                ${c.is_paid
-                  ? `<span class="inline-flex items-center gap-1 text-xs font-medium bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">🎓 Certificate</span>`
-                  : `<span class="inline-flex items-center gap-1 text-xs font-medium bg-slate-50 text-slate-500 px-2 py-0.5 rounded-full border border-slate-200">Free</span>`
-                }
-              </div>
-            </div>
-          </div>
-
-          <!-- Driver badge + reason ─────────────────────────────── -->
-          <div class="mt-4">
-            <div class="inline-flex items-center gap-1.5 text-xs font-semibold ${driver.bg} ${driver.text} ${driver.border} border px-2.5 py-1 rounded-full mb-2">
-              <span>${driver.icon}</span>
-              <span>${driver.label}</span>
-            </div>
-            <div class="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
-              <p class="text-sm text-slate-700 leading-relaxed">${escHtml(rec.coaching_reason || rec.reason)}</p>
-              ${rec.coaching_reason && rec.coaching_reason !== rec.reason
-                ? `<p class="text-xs text-slate-400 mt-1.5 flex items-center gap-1">
-                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                     Enhanced by Groq AI · <span class="italic">${escHtml(rec.reason)}</span>
-                   </p>`
-                : ''
-              }
-            </div>
-          </div>
-
-          <!-- Skills ─────────────────────────────────────────────── -->
-          ${skills ? `<div class="flex flex-wrap gap-1.5 mt-4">${skills}</div>` : ''}
-
-          <!-- Breakdown (expandable) ─────────────────────────────── -->
-          <details class="mt-4 group/details">
-            <summary class="flex items-center gap-2 cursor-pointer select-none list-none">
-              <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-ami-600 transition-colors">
-                <svg class="w-3.5 h-3.5 group-open/details:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-                </svg>
-                Score breakdown
-              </div>
-              <div class="flex-1 h-px bg-slate-100"></div>
-              <span class="text-xs text-slate-400 font-mono">confidence: ${(rec.usage_confidence * 100).toFixed(0)}%</span>
-            </summary>
-
-            <div class="mt-3 space-y-0.5">
-              <p class="text-xs text-slate-500 italic mb-3">${escHtml(rec.reason_detail)}</p>
-              ${breakdownRows}
-            </div>
-          </details>
-        </div>
-      </div>`;
-  }
-
-  // ── User meta banner ─────────────────────────────────────────────
-  function renderMeta(data) {
-    const conf = data.usage_confidence;
-    const confPct = Math.round(conf * 100);
-    let confClass, confLabel, confDesc;
-
-    if (conf === 0) {
-      confClass = 'conf-cold';
-      confLabel = 'Cold-start';
-      confDesc = 'Recommendations driven by survey responses and work context only.';
-    } else if (conf < 1) {
-      confClass = 'conf-blended';
-      confLabel = `${confPct}% behavior-driven`;
-      confDesc = `Blending survey intent with ${confPct}% weight on actual usage history.`;
-    } else {
-      confClass = 'conf-full';
-      confLabel = 'Fully behavior-driven';
-      confDesc = 'Rich usage history — recommendations reflect actual learning patterns.';
-    }
-
-    // Confidence bar
-    const bar = `
-      <div class="flex items-center gap-3 mt-3">
+      <p class="text-xs text-slate-500 mt-2">${confDesc}</p>
+      <div class="flex items-center gap-3 mt-2.5">
         <span class="text-xs text-slate-400 w-16 font-medium">Cold-start</span>
-        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
           <div class="bar-fill h-full bg-gradient-to-r from-amber-400 to-emerald-500 rounded-full"
                style="width:0%" data-width="${confPct}%"></div>
         </div>
         <span class="text-xs text-slate-400 w-16 text-right font-medium">Behavioral</span>
-      </div>`;
+      </div>
+    </div>`;
+}
+</script>
+
+<script>
+// ── Sidebar ──────────────────────────────────────────────────────
+function renderSidebar(data) {
+  const conf = data.usage_confidence;
+  const confPct = Math.round(conf * 100);
+
+  // Compute effective weights (mirrors engine/coldstart.py)
+  const K = 5;
+  const usageConf = Math.min(1, conf);
+  const wUsage   = 0.40 * usageConf;
+  const freed    = 0.40 * (1 - usageConf);
+  const wSurvey  = 0.35 + freed * 0.60;
+  const wContext = 0.25 + freed * 0.40;
+
+  const weightBar = (label, pct, hex, tip) => `
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-xs text-slate-500 w-20 font-medium tip" data-tip="${tip}">${label}</span>
+      <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div class="bar-fill h-full rounded-full" style="width:0%;background:${hex}" data-width="${(pct*100).toFixed(0)}%"></div>
+      </div>
+      <span class="text-xs font-mono text-slate-400 w-8 text-right">${(pct*100).toFixed(0)}%</span>
+    </div>`;
+
+  return `
+    <!-- Active weights card -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-slide-in">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Active signal weights</p>
+      <p class="text-xs text-slate-500 mb-3 leading-relaxed">
+        ${conf === 0
+          ? 'No completed courses yet — usage signal is inactive. Survey and work-context carry everything.'
+          : conf < 1
+          ? `${confPct}% confidence from usage history. Freed weight flows to survey and context.`
+          : 'Full usage history. All three signals at base weights.'}
+      </p>
+      ${weightBar('Survey', wSurvey, '#10b981', 'Stated goals & skill gaps from onboarding survey')}
+      ${weightBar('Usage', wUsage, '#3b82f6', 'Content similarity to completed courses + cohort')}
+      ${weightBar('Context', wContext, '#f59e0b', 'Seniority-level fit + industry programme affinity')}
+    </div>
+
+    <!-- Signal legend -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-slide-in" style="animation-delay:60ms">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Signal legend</p>
+      <div class="space-y-3">
+        ${Object.entries(DRIVER_CONFIG).filter(([k])=>k!=='fallback').map(([k,v])=>`
+          <div class="flex gap-2.5">
+            <span class="text-base flex-shrink-0 mt-0.5">${v.icon}</span>
+            <div>
+              <p class="text-xs font-semibold text-slate-700">${v.label}</p>
+              <p class="text-xs text-slate-500 leading-relaxed mt-0.5">${v.explain}</p>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Cold-start tip if relevant -->
+    ${conf < 0.4 ? `
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 animate-slide-in" style="animation-delay:120ms">
+      <div class="flex gap-2">
+        <span class="text-base flex-shrink-0">💡</span>
+        <p class="text-xs text-amber-800 leading-relaxed">
+          <strong>Cold-start mode.</strong> As this learner completes courses, the usage signal activates
+          and recommendations become increasingly personalised to their actual behaviour.
+        </p>
+      </div>
+    </div>` : ''}
+
+    <!-- Click tip -->
+    <div class="text-center mt-2">
+      <p class="text-xs text-slate-400">Click any card to explore <strong>why</strong> it was recommended</p>
+    </div>`;
+}
+
+// ── Why overlay ──────────────────────────────────────────────────
+function openWhy(idx) {
+  if (!_lastData) return;
+  const rec = _lastData.recommendations[idx];
+  if (!rec) return;
+
+  // Highlight selected card
+  document.querySelectorAll('.rec-card').forEach(el => el.classList.remove('selected'));
+  const card = document.querySelector(`.rec-card[data-idx="${idx}"]`);
+  if (card) card.classList.add('selected');
+  _selectedIdx = idx;
+
+  const c = rec.course;
+  const driver = DRIVER_CONFIG[rec.reason_driver] || DRIVER_CONFIG.fallback;
+  const level = LEVEL_CONFIG[c.level] || {label:c.level,dot:'bg-slate-400',text:'text-slate-600',bg:'bg-slate-50'};
+  const area = AREA_LABELS[c.programme_area] || c.programme_area.replace(/_/g,' ');
+  const conf = rec.usage_confidence;
+  const K = 5;
+  const usageConf = Math.min(1, conf);
+  const wUsage   = (0.40 * usageConf * 100).toFixed(0);
+  const freed    = 0.40 * (1 - usageConf);
+  const wSurvey  = ((0.35 + freed * 0.60) * 100).toFixed(0);
+  const wContext = ((0.25 + freed * 0.40) * 100).toFixed(0);
+
+  document.getElementById('why-title').textContent = c.title;
+
+  const body = [];
+
+  // ①  Coach reason
+  body.push(`
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Coach recommendation</p>
+      <div class="flex items-start gap-3 bg-slate-50 border border-slate-100 rounded-xl p-4">
+        <span class="text-2xl flex-shrink-0">${driver.icon}</span>
+        <div>
+          <p class="text-sm text-slate-800 leading-relaxed font-medium">${escHtml(rec.coaching_reason||rec.reason)}</p>
+          ${rec.coaching_reason && rec.coaching_reason !== rec.reason
+            ? `<p class="text-xs text-slate-400 mt-1.5">✦ Enhanced by Groq AI · original: <em>${escHtml(rec.reason)}</em></p>` : ''}
+        </div>
+      </div>
+    </div>`);
+
+  // ②  Primary driver explanation
+  body.push(`
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Primary signal</p>
+      <div class="inline-flex items-center gap-2 ${driver.bg} ${driver.border} border px-3 py-1.5 rounded-full mb-2">
+        <span>${driver.icon}</span>
+        <span class="text-xs font-semibold ${driver.text}">${driver.label}</span>
+      </div>
+      <p class="text-sm text-slate-700 leading-relaxed">${driver.explain}</p>
+      <p class="text-xs text-slate-500 mt-2 italic">${escHtml(rec.reason_detail)}</p>
+    </div>`);
+
+  // ③  Signal breakdown — visual stacked bar + rows
+  const totalScore = rec.score;
+  const breakdownRows = rec.score_breakdown.map(b => {
+    const compKey = b.component;
+    const driverKey = compKey.includes('survey') ? 'survey'
+                    : compKey.includes('usage')  ? 'usage'
+                    : compKey.includes('work')   ? 'context' : 'fallback';
+    const cfg = DRIVER_CONFIG[driverKey];
+    const sharePct = totalScore > 0 ? ((b.contribution / totalScore)*100).toFixed(0) : 0;
+    const rawPct   = (b.raw_score * 100).toFixed(0);
+    const isBest   = rec.score_breakdown.reduce((a,x)=>x.contribution>a.contribution?x:a, rec.score_breakdown[0]).component === b.component;
 
     return `
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-6 animate-fade-up">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Learner</p>
-            <h2 class="text-lg font-bold text-slate-900">${escHtml(data.user_id)}</h2>
+      <div class="flex items-center gap-3 py-2.5 border-b border-slate-50 last:border-0">
+        <span class="text-base flex-shrink-0">${cfg.icon}</span>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-semibold text-slate-700">${cfg.label}</span>
+            ${isBest ? `<span class="text-xs bg-ami-100 text-ami-700 px-1.5 py-0.5 rounded-full font-medium">primary driver</span>` : ''}
           </div>
-          <div class="text-right">
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Signal Mode</p>
-            <span class="${confClass} text-xs font-bold px-3 py-1 rounded-full">${confLabel}</span>
+          <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div class="bar-fill h-full rounded-full" style="width:0%;background:${cfg.hex}" data-width="${sharePct}%"></div>
           </div>
         </div>
-        <div>
-          <p class="text-xs text-slate-500 mt-2">${confDesc}</p>
-          ${bar}
+        <div class="text-right flex-shrink-0 w-20">
+          <div class="text-xs font-bold text-slate-700">${sharePct}% of score</div>
+          <div class="text-xs text-slate-400 font-mono">raw: ${rawPct}%</div>
         </div>
       </div>`;
-  }
+  }).join('');
 
-  // ── Main fetch ───────────────────────────────────────────────────
-  async function fetchRecs() {
-    const userId = document.getElementById('user-id').value.trim();
-    const n = parseInt(document.getElementById('n-param').value, 10) || 5;
-    const errEl  = document.getElementById('error-msg');
-    const errTxt = document.getElementById('error-text');
-    const results = document.getElementById('results');
+  body.push(`
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">How the score was built</p>
+      <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-3">
+        <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+          <span>Signal contributions</span>
+          <span class="font-mono font-semibold text-slate-600">total: ${Math.round(totalScore*100)}/100</span>
+        </div>
+        <div class="h-3 bg-slate-200 rounded-full overflow-hidden flex">
+          ${rec.score_breakdown.map(b=>{
+            const dk = b.component.includes('survey')?'survey':b.component.includes('usage')?'usage':'context';
+            const cfg = DRIVER_CONFIG[dk];
+            const pct = totalScore>0?((b.contribution/totalScore)*100).toFixed(1):0;
+            return `<div class="signal-bar-segment" style="width:0%;background:${cfg.hex}" data-width="${pct}%" title="${cfg.label}: ${pct}%"></div>`;
+          }).join('')}
+        </div>
+        <div class="flex gap-4 mt-2">
+          ${rec.score_breakdown.map(b=>{
+            const dk = b.component.includes('survey')?'survey':b.component.includes('usage')?'usage':'context';
+            const cfg = DRIVER_CONFIG[dk];
+            const pct = totalScore>0?((b.contribution/totalScore)*100).toFixed(0):0;
+            return `<div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background:${cfg.hex}"></span><span class="text-xs text-slate-500">${cfg.label} ${pct}%</span></div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="divide-y divide-slate-50">${breakdownRows}</div>
+    </div>`);
 
-    errEl.classList.add('hidden');
+  // ④  Effective weights for this user
+  body.push(`
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Why these weights?</p>
+      <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-3">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          ${conf === 0
+            ? `This learner has <strong>no completed courses</strong>, so usage_confidence = 0. The full 40% usage weight is redistributed: survey gets +24% (making it ${wSurvey}%), work-context gets +16% (making it ${wContext}%). Usage contributes 0%.`
+            : conf < 1
+            ? `usage_confidence = ${(conf*100).toFixed(0)}% (${Math.round(conf*5)}/5 completed courses). Usage effective weight = ${wUsage}%. Freed weight redistributed to survey (${wSurvey}%) and context (${wContext}%).`
+            : `usage_confidence = 100% (5+ completed courses). All signals carry their base weights: survey 35%, usage 40%, context 25%.`}
+        </p>
+        <div class="font-mono text-xs bg-slate-100 rounded-lg px-3 py-2 text-slate-600 leading-relaxed">
+          usage_confidence = min(1, ${Math.round(conf*5)} / 5) = ${conf.toFixed(2)}<br>
+          w_survey  = 0.35 + (0.40 × ${(1-conf).toFixed(2)} × 0.60) = ${(parseFloat(wSurvey)/100).toFixed(2)}<br>
+          w_usage   = 0.40 × ${conf.toFixed(2)} = ${(parseFloat(wUsage)/100).toFixed(2)}<br>
+          w_context = 0.25 + (0.40 × ${(1-conf).toFixed(2)} × 0.40) = ${(parseFloat(wContext)/100).toFixed(2)}
+        </div>
+      </div>
+    </div>`);
 
-    if (!userId) {
-      errTxt.textContent = 'Please enter a learner ID.';
-      errEl.classList.remove('hidden');
-      return;
-    }
+  // ⑤  Course details
+  const skills = c.skills_taught.map(s=>
+    `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">${escHtml(s)}</span>`
+  ).join(' ');
 
-    // Skeleton
-    results.innerHTML = showSkeletons(n);
+  body.push(`
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Course details</p>
+      <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-3">
+        <div class="flex flex-wrap gap-2">
+          <span class="inline-flex items-center gap-1 text-xs font-medium ${level.bg} ${level.text} px-2 py-0.5 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full ${level.dot}"></span>${level.label}
+          </span>
+          <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">${escHtml(area)}</span>
+          <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">${c.duration_mins} min</span>
+          ${c.is_paid?`<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">🎓 Certificate</span>`:`<span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">Free</span>`}
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500 mb-1.5">Skills taught</p>
+          <div class="flex flex-wrap gap-1.5">${skills}</div>
+        </div>
+      </div>
+    </div>`);
 
-    let data;
-    try {
-      const resp = await fetch(`/api/users/${encodeURIComponent(userId)}/recommendations?n=${n}`);
-      data = await resp.json();
-      if (!resp.ok) {
-        results.innerHTML = '';
-        errTxt.textContent = data.error || `Error ${resp.status}`;
-        errEl.classList.remove('hidden');
-        return;
-      }
-    } catch (e) {
-      results.innerHTML = '';
-      errTxt.textContent = `Network error: ${e.message}`;
-      errEl.classList.remove('hidden');
-      return;
-    }
+  document.getElementById('why-body').innerHTML = body.join('');
+  document.getElementById('why-overlay').classList.add('open');
 
-    if (data.recommendation_count === 0) {
-      results.innerHTML = renderMeta(data) + `
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center animate-fade-up">
-          <div class="text-4xl mb-3">🎓</div>
-          <h3 class="text-base font-bold text-slate-800 mb-1">All caught up!</h3>
-          <p class="text-sm text-slate-500">This learner has completed all available courses.</p>
-        </div>`;
-      return;
-    }
-
-    let html = renderMeta(data);
-    data.recommendations.forEach((rec, i) => { html += renderRec(rec, i); });
-    results.innerHTML = html;
-
-    // Animate bars after render
-    requestAnimationFrame(() => {
-      document.querySelectorAll('.bar-fill[data-width]').forEach(el => {
-        setTimeout(() => { el.style.width = el.dataset.width; }, 80);
+  // Animate bars in panel
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.querySelectorAll('#why-body .bar-fill[data-width], #why-body .signal-bar-segment[data-width]').forEach(el => {
+        el.style.width = el.dataset.width;
       });
-    });
+    }, 60);
+  });
+}
+
+function closeWhy(e) {
+  if (e && e.target !== document.getElementById('why-overlay')) return;
+  document.getElementById('why-overlay').classList.remove('open');
+  document.querySelectorAll('.rec-card').forEach(el => el.classList.remove('selected'));
+  _selectedIdx = null;
+}
+</script>
+
+<script>
+// ── Main fetch ───────────────────────────────────────────────────
+async function fetchRecs() {
+  const userId = document.getElementById('user-id').value.trim();
+  const n = parseInt(document.getElementById('n-param').value,10) || 5;
+  const errEl  = document.getElementById('error-msg');
+  const errTxt = document.getElementById('error-text');
+  const results = document.getElementById('results');
+  const sidebar = document.getElementById('sidebar');
+
+  errEl.classList.add('hidden');
+  sidebar.classList.add('hidden');
+
+  if (!userId) {
+    errTxt.textContent = 'Please enter a learner ID.';
+    errEl.classList.remove('hidden');
+    return;
   }
 
-  // Auto-load on page open
-  fetchRecs();
-  </script>
+  results.innerHTML = showSkeletons(n);
+
+  let data;
+  try {
+    const resp = await fetch(`/api/users/${encodeURIComponent(userId)}/recommendations?n=${n}`);
+    data = await resp.json();
+    if (!resp.ok) {
+      results.innerHTML = '';
+      errTxt.textContent = data.error || `Error ${resp.status}`;
+      errEl.classList.remove('hidden');
+      return;
+    }
+  } catch(e) {
+    results.innerHTML = '';
+    errTxt.textContent = `Network error: ${e.message}`;
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  _lastData = data;
+
+  if (data.recommendation_count === 0) {
+    results.innerHTML = renderMeta(data) + `
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center animate-fade-up">
+        <div class="text-4xl mb-3">🎓</div>
+        <h3 class="text-base font-bold text-slate-800 mb-1">All caught up!</h3>
+        <p class="text-sm text-slate-500">This learner has completed all available courses.</p>
+      </div>`;
+    return;
+  }
+
+  let html = renderMeta(data);
+  data.recommendations.forEach((rec,i) => { html += renderRec(rec,i); });
+  results.innerHTML = html;
+
+  // Render sidebar
+  sidebar.innerHTML = renderSidebar(data);
+  sidebar.classList.remove('hidden');
+
+  // Animate all bars
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.querySelectorAll('.bar-fill[data-width], .signal-bar-segment[data-width]').forEach(el => {
+        el.style.width = el.dataset.width;
+      });
+    }, 80);
+  });
+}
+
+// Keyboard: Escape closes the panel
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWhy(); });
+
+fetchRecs();
+</script>
 </body>
 </html>
