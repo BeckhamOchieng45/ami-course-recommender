@@ -46,7 +46,7 @@ class ScorerFunction(Protocol):
 
 _SCORERS: list[ScorerFunction] = []
 
-
+ 
 def register_scorer(func: ScorerFunction) -> ScorerFunction:
     """
     Decorator to register a scorer function.

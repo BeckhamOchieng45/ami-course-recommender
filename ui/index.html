@@ -1,198 +1,447 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AMI Course Recommendations</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <title>AMI · Course Recommendations</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ami: {
+              50:  '#f0f7ff',
+              100: '#e0effe',
+              200: '#baddfd',
+              300: '#7ec2fb',
+              400: '#399ef7',
+              500: '#0f7fe8',
+              600: '#0062c6',
+              700: '#004ea0',
+              800: '#044384',
+              900: '#0a3a6d',
+              950: '#072449',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          keyframes: {
+            'fade-up': {
+              '0%':   { opacity: '0', transform: 'translateY(16px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            'shimmer': {
+              '0%':   { backgroundPosition: '-400px 0' },
+              '100%': { backgroundPosition: '400px 0' },
+            }
+          },
+          animation: {
+            'fade-up': 'fade-up 0.35s ease both',
+            'shimmer': 'shimmer 1.4s linear infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    body { max-width: 860px; margin: 0 auto; padding: 1.5rem; }
-    h1 { margin-bottom: 0.25rem; }
-    .subtitle { color: var(--pico-muted-color); margin-bottom: 1.5rem; font-size: 0.95rem; }
-    .controls { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
-    .controls label { flex: 1; min-width: 200px; }
-    .controls label span { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; font-weight: 600; }
-    #btn-go { margin-top: 0; }
-    #status { margin: 1rem 0 0.5rem; font-size: 0.9rem; color: var(--pico-muted-color); min-height: 1.4rem; }
-    .meta-bar { display: flex; gap: 1.5rem; margin-bottom: 1.25rem; font-size: 0.85rem; flex-wrap: wrap; }
-    .meta-bar span { background: var(--pico-secondary-background); padding: 0.2rem 0.6rem; border-radius: 4px; }
-    .rec-card { border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
-    .rec-header { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.5rem; }
-    .position { font-size: 1.5rem; font-weight: 700; color: var(--pico-primary); min-width: 2rem; line-height: 1; }
-    .course-title { font-size: 1.05rem; font-weight: 600; margin: 0; }
-    .course-meta { font-size: 0.8rem; color: var(--pico-muted-color); margin: 0.15rem 0 0; }
-    .reason { font-size: 0.9rem; background: var(--pico-secondary-background); border-left: 3px solid var(--pico-primary); padding: 0.5rem 0.75rem; border-radius: 0 4px 4px 0; margin: 0.6rem 0; }
-    .score-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
-    .badge { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 10px; background: var(--pico-secondary-background); white-space: nowrap; }
-    .badge.driver-survey  { border: 1px solid #4caf50; color: #4caf50; }
-    .badge.driver-usage   { border: 1px solid #2196f3; color: #2196f3; }
-    .badge.driver-context { border: 1px solid #ff9800; color: #ff9800; }
-    .badge.driver-cohort  { border: 1px solid #9c27b0; color: #9c27b0; }
-    .badge.driver-fallback{ border: 1px solid var(--pico-muted-color); }
-    details { margin-top: 0.6rem; font-size: 0.82rem; }
-    summary { cursor: pointer; color: var(--pico-muted-color); user-select: none; }
-    .breakdown-table { width: 100%; border-collapse: collapse; margin-top: 0.4rem; }
-    .breakdown-table th, .breakdown-table td { padding: 0.25rem 0.5rem; text-align: left; border-bottom: 1px solid var(--pico-muted-border-color); }
-    .breakdown-table th { font-weight: 600; font-size: 0.8rem; }
-    .bar-cell { width: 120px; }
-    .bar { height: 8px; background: var(--pico-primary); border-radius: 4px; }
-    #error-msg { color: var(--pico-del-color); font-size: 0.9rem; margin-top: 0.5rem; }
+    /* Shimmer skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+      background-size: 400px 100%;
+      animation: shimmer 1.4s linear infinite;
+      border-radius: 8px;
+    }
+    /* Score bar fill animation */
+    .bar-fill { transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+    /* Card stagger delay */
+    .card-0 { animation-delay: 0ms; }
+    .card-1 { animation-delay: 60ms; }
+    .card-2 { animation-delay: 120ms; }
+    .card-3 { animation-delay: 180ms; }
+    .card-4 { animation-delay: 240ms; }
+    /* Confidence pill gradient */
+    .conf-cold    { background: linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+    .conf-blended { background: linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e40af; }
+    .conf-full    { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    /* Details/summary reset */
+    details summary::-webkit-details-marker { display: none; }
   </style>
 </head>
-<body>
-  <h1>AMI Course Recommendations</h1>
-  <p class="subtitle">AI Coach Bot · Learning Recommendation Engine</p>
 
-  <div class="controls">
-    <label>
-      <span>User ID</span>
-      <input id="user-id" type="text" placeholder="e.g. USR-00001" value="USR-00839" />
-    </label>
-    <label style="max-width:100px;">
-      <span>Results (n)</span>
-      <input id="n-param" type="number" value="5" min="1" max="20" />
-    </label>
-    <button id="btn-go" onclick="fetchRecs()">Get Recommendations</button>
+<body class="h-full bg-slate-50 font-sans text-slate-800 antialiased">
+
+  <!-- ── Header ──────────────────────────────────────────────────── -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <!-- AMI wordmark -->
+        <div class="w-9 h-9 rounded-xl bg-ami-600 flex items-center justify-center shadow-sm flex-shrink-0">
+          <span class="text-white font-extrabold text-sm tracking-tight">AMI</span>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 leading-none">Course Recommendations</h1>
+          <p class="text-xs text-slate-500 mt-0.5">AI Coach Bot · Learning Engine</p>
+        </div>
+      </div>
+      <!-- Sample user quick-links -->
+      <div class="hidden sm:flex items-center gap-1 text-xs text-slate-500">
+        <span class="mr-1 font-medium">Try:</span>
+        <button onclick="loadUser('USR-00839')" class="px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-ami-50 hover:border-ami-300 hover:text-ami-700 transition-all text-slate-600 font-medium">Cold-start</button>
+        <button onclick="loadUser('USR-00004')" class="px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-ami-50 hover:border-ami-300 hover:text-ami-700 transition-all text-slate-600 font-medium">In-between</button>
+        <button onclick="loadUser('USR-00025')" class="px-2.5 py-1 rounded-full border border-slate-200 bg-white hover:bg-ami-50 hover:border-ami-300 hover:text-ami-700 transition-all text-slate-600 font-medium">Heavy usage</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Search bar ───────────────────────────────────────────────── -->
+  <div class="bg-white border-b border-slate-100">
+    <div class="max-w-5xl mx-auto px-6 py-5">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <!-- User ID -->
+        <div class="flex-1 relative">
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Learner ID</label>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <input id="user-id" type="text" placeholder="e.g. USR-00001" value="USR-00839"
+              class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ami-500 focus:border-transparent focus:bg-white transition-all"
+              onkeydown="if(event.key==='Enter') fetchRecs()" />
+          </div>
+        </div>
+        <!-- N param -->
+        <div class="w-full sm:w-32">
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Results</label>
+          <select id="n-param"
+            class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-ami-500 focus:border-transparent focus:bg-white transition-all appearance-none">
+            <option value="3">3 courses</option>
+            <option value="5" selected>5 courses</option>
+            <option value="10">10 courses</option>
+          </select>
+        </div>
+        <!-- Submit -->
+        <div class="flex items-end">
+          <button onclick="fetchRecs()"
+            class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-ami-600 hover:bg-ami-700 active:bg-ami-800 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            Get Recommendations
+          </button>
+        </div>
+      </div>
+      <!-- Error message -->
+      <p id="error-msg" class="hidden mt-3 text-sm text-red-600 flex items-center gap-1.5">
+        <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+        <span id="error-text"></span>
+      </p>
+    </div>
   </div>
 
-  <div style="margin-top:0.75rem; font-size:0.82rem; color:var(--pico-muted-color);">
-    Sample users:
-    <a href="#" onclick="loadUser('USR-00839')">USR-00839 (cold-start)</a> ·
-    <a href="#" onclick="loadUser('USR-00004')">USR-00004 (in-between)</a> ·
-    <a href="#" onclick="loadUser('USR-00025')">USR-00025 (heavy-usage)</a>
-  </div>
-
-  <p id="status"></p>
-  <p id="error-msg" hidden></p>
-  <div id="results"></div>
+  <!-- ── Main content ─────────────────────────────────────────────── -->
+  <main class="max-w-5xl mx-auto px-6 py-8">
+    <div id="results"></div>
+  </main>
 
   <script>
-    function loadUser(uid) {
-      document.getElementById('user-id').value = uid;
-      fetchRecs();
-      return false;
-    }
+  // ── Helpers ─────────────────────────────────────────────────────
+  const DRIVER_CONFIG = {
+    survey:  { label: 'Survey match',   icon: '📝', bg: 'bg-emerald-50',  text: 'text-emerald-700',  border: 'border-emerald-200', bar: 'bg-emerald-500' },
+    usage:   { label: 'Usage-based',    icon: '📈', bg: 'bg-blue-50',     text: 'text-blue-700',     border: 'border-blue-200',   bar: 'bg-blue-500'    },
+    context: { label: 'Work context',   icon: '🏢', bg: 'bg-amber-50',    text: 'text-amber-700',    border: 'border-amber-200',  bar: 'bg-amber-500'   },
+    cohort:  { label: 'Cohort popular', icon: '👥', bg: 'bg-violet-50',   text: 'text-violet-700',   border: 'border-violet-200', bar: 'bg-violet-500'  },
+    fallback:{ label: 'General fit',    icon: '✦',  bg: 'bg-slate-100',   text: 'text-slate-600',    border: 'border-slate-200',  bar: 'bg-slate-400'   },
+  };
 
-    async function fetchRecs() {
-      const userId = document.getElementById('user-id').value.trim();
-      const n = parseInt(document.getElementById('n-param').value, 10) || 5;
-      const status = document.getElementById('status');
-      const errEl = document.getElementById('error-msg');
-      const results = document.getElementById('results');
+  const LEVEL_CONFIG = {
+    foundational: { label: 'Foundational', dot: 'bg-emerald-400', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+    intermediate: { label: 'Intermediate', dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'bg-amber-50'   },
+    advanced:     { label: 'Advanced',     dot: 'bg-rose-400',    text: 'text-rose-700',     bg: 'bg-rose-50'    },
+  };
 
-      if (!userId) {
-        errEl.textContent = 'Please enter a user ID.';
-        errEl.hidden = false;
-        return;
-      }
+  const AREA_LABELS = {
+    entrepreneurship: 'Entrepreneurship & Business Growth',
+    leadership:       'Executive Leadership & Management',
+    workplace:        'Workplace & Professional Growth',
+    ai_strategy:      'AI Strategy',
+    womens_leadership:"Women's Leadership",
+  };
 
-      errEl.hidden = true;
-      results.innerHTML = '';
-      status.textContent = 'Loading…';
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
-      let data;
-      try {
-        const resp = await fetch(`/api/users/${encodeURIComponent(userId)}/recommendations?n=${n}`);
-        data = await resp.json();
-        if (!resp.ok) {
-          errEl.textContent = data.error || `Error ${resp.status}`;
-          errEl.hidden = false;
-          status.textContent = '';
-          return;
-        }
-      } catch (e) {
-        errEl.textContent = `Network error: ${e.message}`;
-        errEl.hidden = false;
-        status.textContent = '';
-        return;
-      }
+  function loadUser(uid) {
+    document.getElementById('user-id').value = uid;
+    fetchRecs();
+    return false;
+  }
 
-      const conf = (data.usage_confidence * 100).toFixed(0);
-      const confLabel = data.usage_confidence === 0
-        ? 'Cold-start (survey + context only)'
-        : data.usage_confidence < 1
-          ? `Blended (${conf}% behavior-driven)`
-          : 'Fully behavior-driven';
-
-      status.textContent = '';
-      results.innerHTML = `
-        <div class="meta-bar">
-          <span>👤 ${data.user_id}</span>
-          <span>📊 ${data.recommendation_count} recommendations</span>
-          <span>🎯 ${confLabel}</span>
+  // ── Skeleton loading state ───────────────────────────────────────
+  function showSkeletons(n = 3) {
+    const skels = Array.from({ length: n }, () => `
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-4">
+        <div class="flex gap-4">
+          <div class="skeleton w-12 h-12 rounded-xl flex-shrink-0"></div>
+          <div class="flex-1 space-y-3">
+            <div class="skeleton h-5 w-3/4 rounded-lg"></div>
+            <div class="skeleton h-3.5 w-1/2 rounded-lg"></div>
+            <div class="skeleton h-16 w-full rounded-xl mt-2"></div>
+            <div class="flex gap-2 mt-2">
+              <div class="skeleton h-6 w-24 rounded-full"></div>
+              <div class="skeleton h-6 w-20 rounded-full"></div>
+              <div class="skeleton h-6 w-28 rounded-full"></div>
+            </div>
+          </div>
         </div>
-      `;
+      </div>
+    `).join('');
+    return skels;
+  }
 
-      if (data.recommendations.length === 0) {
-        results.innerHTML += `<p>No eligible courses found — this user may have completed all available courses.</p>`;
-        return;
-      }
+  // ── Score breakdown row ──────────────────────────────────────────
+  function renderBreakdownRow(b) {
+    const driver = Object.keys(DRIVER_CONFIG).find(k =>
+      b.component.includes(k.replace('-','_')) ||
+      (k === 'survey' && b.component.includes('survey')) ||
+      (k === 'usage' && b.component.includes('usage')) ||
+      (k === 'context' && b.component.includes('work'))
+    ) || 'fallback';
+    const cfg = DRIVER_CONFIG[driver];
+    const pct = Math.min(100, (b.contribution / 0.4) * 100);
+    const score100 = (b.raw_score * 100).toFixed(0);
 
-      for (const rec of data.recommendations) {
-        results.innerHTML += renderRec(rec);
-      }
-    }
+    return `
+      <div class="flex items-center gap-3 py-2">
+        <div class="w-28 flex-shrink-0">
+          <span class="text-xs font-medium text-slate-600 capitalize">${escHtml(b.component.replace(/_/g,' '))}</span>
+        </div>
+        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div class="bar-fill h-full ${cfg.bar} rounded-full" style="width:0%" data-width="${pct.toFixed(1)}%"></div>
+        </div>
+        <div class="w-10 text-right text-xs font-semibold text-slate-500">${score100}%</div>
+        <div class="w-16 text-right text-xs font-mono text-slate-400">${b.contribution.toFixed(3)}</div>
+      </div>`;
+  }
 
-    function renderRec(rec) {
-      const c = rec.course;
-      const driverClass = `driver-${rec.reason_driver}`;
-      const driverLabel = {
-        survey: '📝 survey match',
-        usage: '📈 usage-based',
-        context: '🏢 work context',
-        cohort: '👥 cohort popular',
-        fallback: '✦ general fit',
-      }[rec.reason_driver] || rec.reason_driver;
+  // ── Individual recommendation card ──────────────────────────────
+  function renderRec(rec, idx) {
+    const c = rec.course;
+    const driver = DRIVER_CONFIG[rec.reason_driver] || DRIVER_CONFIG.fallback;
+    const level = LEVEL_CONFIG[c.level] || { label: c.level, dot: 'bg-slate-400', text: 'text-slate-600', bg: 'bg-slate-50' };
+    const area = AREA_LABELS[c.programme_area] || c.programme_area.replace(/_/g,' ');
+    const pct = Math.round(rec.score * 100);
+    const isTop = idx === 0;
 
-      const levelBadge = { foundational: '🟢 Foundational', intermediate: '🟡 Intermediate', advanced: '🔴 Advanced' }[c.level] || c.level;
-      const paidBadge = c.is_paid ? '🎓 Certificate' : '🆓 Free';
-      const skills = c.skills_taught.slice(0, 4).map(s => `<span class="badge">${s}</span>`).join(' ');
+    const skills = c.skills_taught.slice(0, 5).map(s =>
+      `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">${escHtml(s)}</span>`
+    ).join('');
 
-      // Score breakdown bar chart (max contribution ~0.4)
-      const maxContrib = 0.4;
-      const breakdownRows = rec.score_breakdown.map(b => {
-        const barWidth = Math.min(100, (b.contribution / maxContrib) * 100).toFixed(1);
-        return `
-          <tr>
-            <td>${b.component.replace(/_/g,' ')}</td>
-            <td>${b.raw_score.toFixed(3)}</td>
-            <td>${b.effective_weight.toFixed(3)}</td>
-            <td class="bar-cell"><div class="bar" style="width:${barWidth}%" title="${b.contribution.toFixed(4)}"></div></td>
-            <td>${b.contribution.toFixed(4)}</td>
-          </tr>`;
-      }).join('');
+    const breakdownRows = rec.score_breakdown.map(renderBreakdownRow).join('');
 
-      return `
-        <div class="rec-card">
-          <div class="rec-header">
-            <div class="position">${rec.position}</div>
-            <div>
-              <p class="course-title">${c.title}</p>
-              <p class="course-meta">${c.programme_area.replace(/_/g,' ')} · ${levelBadge} · ${c.duration_mins} min · ${paidBadge}</p>
+    return `
+      <div class="group relative bg-white rounded-2xl border ${isTop ? 'border-ami-200 shadow-md shadow-ami-100/50' : 'border-slate-100 shadow-sm'} 
+                  hover:shadow-lg hover:border-ami-200 transition-all duration-300 mb-4 overflow-hidden
+                  animate-fade-up card-${idx}">
+
+        ${isTop ? `<div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-ami-500 to-ami-400"></div>` : ''}
+
+        <div class="p-6">
+          <!-- Card header -->
+          <div class="flex items-start gap-4">
+
+            <!-- Position badge -->
+            <div class="flex-shrink-0 w-12 h-12 rounded-xl ${isTop ? 'bg-ami-600 shadow-sm shadow-ami-200' : 'bg-slate-100'} 
+                        flex items-center justify-center transition-all">
+              <span class="text-xl font-extrabold ${isTop ? 'text-white' : 'text-slate-400'}">${rec.position}</span>
+            </div>
+
+            <!-- Title + meta -->
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <h2 class="text-base font-bold text-slate-900 leading-snug">${escHtml(c.title)}</h2>
+                <!-- Score pill -->
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <div class="relative w-8 h-8">
+                    <svg class="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
+                      <circle cx="16" cy="16" r="13" fill="none" stroke="#e2e8f0" stroke-width="3"/>
+                      <circle cx="16" cy="16" r="13" fill="none" stroke="${isTop ? '#0062c6' : '#94a3b8'}"
+                        stroke-width="3" stroke-dasharray="${(pct / 100) * 81.7} 81.7"
+                        stroke-linecap="round"/>
+                    </svg>
+                    <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-slate-600">${pct}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Course meta chips -->
+              <div class="flex flex-wrap items-center gap-2 mt-2">
+                <span class="inline-flex items-center gap-1 text-xs font-medium ${level.bg} ${level.text} px-2 py-0.5 rounded-full">
+                  <span class="w-1.5 h-1.5 rounded-full ${level.dot}"></span>
+                  ${level.label}
+                </span>
+                <span class="text-xs text-slate-400">·</span>
+                <span class="text-xs text-slate-500 font-medium">${escHtml(area)}</span>
+                <span class="text-xs text-slate-400">·</span>
+                <span class="text-xs text-slate-500">${c.duration_mins} min</span>
+                ${c.is_paid
+                  ? `<span class="inline-flex items-center gap-1 text-xs font-medium bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">🎓 Certificate</span>`
+                  : `<span class="inline-flex items-center gap-1 text-xs font-medium bg-slate-50 text-slate-500 px-2 py-0.5 rounded-full border border-slate-200">Free</span>`
+                }
+              </div>
             </div>
           </div>
 
-          <div class="reason">${rec.reason}</div>
-
-          <div class="score-row">
-            <span class="badge">score: ${rec.score.toFixed(4)}</span>
-            <span class="badge ${driverClass}">${driverLabel}</span>
-            ${skills}
+          <!-- Driver badge + reason ─────────────────────────────── -->
+          <div class="mt-4">
+            <div class="inline-flex items-center gap-1.5 text-xs font-semibold ${driver.bg} ${driver.text} ${driver.border} border px-2.5 py-1 rounded-full mb-2">
+              <span>${driver.icon}</span>
+              <span>${driver.label}</span>
+            </div>
+            <div class="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+              <p class="text-sm text-slate-700 leading-relaxed">${escHtml(rec.reason)}</p>
+            </div>
           </div>
 
-          <details>
-            <summary>Score breakdown ▸</summary>
-            <p style="margin:0.4rem 0 0.2rem; color:var(--pico-muted-color); font-size:0.82rem;">${rec.reason_detail}</p>
-            <table class="breakdown-table">
-              <thead><tr><th>Component</th><th>Raw</th><th>Weight</th><th>Contribution</th><th>Value</th></tr></thead>
-              <tbody>${breakdownRows}</tbody>
-            </table>
+          <!-- Skills ─────────────────────────────────────────────── -->
+          ${skills ? `<div class="flex flex-wrap gap-1.5 mt-4">${skills}</div>` : ''}
+
+          <!-- Breakdown (expandable) ─────────────────────────────── -->
+          <details class="mt-4 group/details">
+            <summary class="flex items-center gap-2 cursor-pointer select-none list-none">
+              <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-ami-600 transition-colors">
+                <svg class="w-3.5 h-3.5 group-open/details:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                </svg>
+                Score breakdown
+              </div>
+              <div class="flex-1 h-px bg-slate-100"></div>
+              <span class="text-xs text-slate-400 font-mono">confidence: ${(rec.usage_confidence * 100).toFixed(0)}%</span>
+            </summary>
+
+            <div class="mt-3 space-y-0.5">
+              <p class="text-xs text-slate-500 italic mb-3">${escHtml(rec.reason_detail)}</p>
+              ${breakdownRows}
+            </div>
           </details>
-        </div>`;
+        </div>
+      </div>`;
+  }
+
+  // ── User meta banner ─────────────────────────────────────────────
+  function renderMeta(data) {
+    const conf = data.usage_confidence;
+    const confPct = Math.round(conf * 100);
+    let confClass, confLabel, confDesc;
+
+    if (conf === 0) {
+      confClass = 'conf-cold';
+      confLabel = 'Cold-start';
+      confDesc = 'Recommendations driven by survey responses and work context only.';
+    } else if (conf < 1) {
+      confClass = 'conf-blended';
+      confLabel = `${confPct}% behavior-driven`;
+      confDesc = `Blending survey intent with ${confPct}% weight on actual usage history.`;
+    } else {
+      confClass = 'conf-full';
+      confLabel = 'Fully behavior-driven';
+      confDesc = 'Rich usage history — recommendations reflect actual learning patterns.';
     }
 
-    // Auto-load on page open
-    fetchRecs();
+    // Confidence bar
+    const bar = `
+      <div class="flex items-center gap-3 mt-3">
+        <span class="text-xs text-slate-400 w-16 font-medium">Cold-start</span>
+        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div class="bar-fill h-full bg-gradient-to-r from-amber-400 to-emerald-500 rounded-full"
+               style="width:0%" data-width="${confPct}%"></div>
+        </div>
+        <span class="text-xs text-slate-400 w-16 text-right font-medium">Behavioral</span>
+      </div>`;
+
+    return `
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-6 animate-fade-up">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Learner</p>
+            <h2 class="text-lg font-bold text-slate-900">${escHtml(data.user_id)}</h2>
+          </div>
+          <div class="text-right">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Signal Mode</p>
+            <span class="${confClass} text-xs font-bold px-3 py-1 rounded-full">${confLabel}</span>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs text-slate-500 mt-2">${confDesc}</p>
+          ${bar}
+        </div>
+      </div>`;
+  }
+
+  // ── Main fetch ───────────────────────────────────────────────────
+  async function fetchRecs() {
+    const userId = document.getElementById('user-id').value.trim();
+    const n = parseInt(document.getElementById('n-param').value, 10) || 5;
+    const errEl  = document.getElementById('error-msg');
+    const errTxt = document.getElementById('error-text');
+    const results = document.getElementById('results');
+
+    errEl.classList.add('hidden');
+
+    if (!userId) {
+      errTxt.textContent = 'Please enter a learner ID.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    // Skeleton
+    results.innerHTML = showSkeletons(n);
+
+    let data;
+    try {
+      const resp = await fetch(`/api/users/${encodeURIComponent(userId)}/recommendations?n=${n}`);
+      data = await resp.json();
+      if (!resp.ok) {
+        results.innerHTML = '';
+        errTxt.textContent = data.error || `Error ${resp.status}`;
+        errEl.classList.remove('hidden');
+        return;
+      }
+    } catch (e) {
+      results.innerHTML = '';
+      errTxt.textContent = `Network error: ${e.message}`;
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    if (data.recommendation_count === 0) {
+      results.innerHTML = renderMeta(data) + `
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center animate-fade-up">
+          <div class="text-4xl mb-3">🎓</div>
+          <h3 class="text-base font-bold text-slate-800 mb-1">All caught up!</h3>
+          <p class="text-sm text-slate-500">This learner has completed all available courses.</p>
+        </div>`;
+      return;
+    }
+
+    let html = renderMeta(data);
+    data.recommendations.forEach((rec, i) => { html += renderRec(rec, i); });
+    results.innerHTML = html;
+
+    // Animate bars after render
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.bar-fill[data-width]').forEach(el => {
+        setTimeout(() => { el.style.width = el.dataset.width; }, 80);
+      });
+    });
+  }
+
+  // Auto-load on page open
+  fetchRecs();
   </script>
 </body>
 </html>

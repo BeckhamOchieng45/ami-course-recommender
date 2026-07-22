@@ -1,27 +1,27 @@
 """
 URL configuration for ami_engine project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+from pathlib import Path
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import RedirectView
+from django.http import FileResponse, Http404
+
+_UI_FILE = Path(__file__).resolve().parent.parent / "ui" / "index.html"
+
+
+def serve_ui(request):
+    """Serve the single-page UI directly — works in dev without collectstatic."""
+    if not _UI_FILE.exists():
+        raise Http404("UI file not found")
+    return FileResponse(open(_UI_FILE, "rb"), content_type="text/html")
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("ami_course_recommendations.urls")),
-    # Serve the single-page UI at the root
-    path("", RedirectView.as_view(url="/ui/index.html", permanent=False)),
+    # All of these serve the same single HTML file
+    path("", serve_ui),
+    path("ui/", serve_ui),
+    path("ui/index.html", serve_ui),
 ]
