@@ -33,6 +33,8 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Markdown renderer for chat bubbles -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
   <style>
     .skeleton { background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);
       background-size:400px 100%; animation:shimmer 1.4s linear infinite; border-radius:8px; }
@@ -66,6 +68,69 @@
       border-radius:6px; white-space:nowrap; z-index:99; pointer-events:none; }
     /* Rec card selected ring */
     .rec-card.selected { border-color:#0062c6!important; box-shadow:0 0 0 3px rgba(0,98,198,.12)!important; }
+
+    /* ── Chat panel ───────────────────────────────────────────── */
+    #chat-overlay {
+      position:fixed; inset:0; background:rgba(15,23,42,.55);
+      z-index:50; display:none; align-items:flex-end; justify-content:center;
+    }
+    #chat-overlay.open { display:flex; }
+    #chat-panel {
+      width:100%; max-width:680px; height:82vh;
+      border-radius:1.5rem 1.5rem 0 0; background:#fff;
+      display:flex; flex-direction:column; overflow:hidden;
+      animation:fade-up .3s ease both;
+    }
+    @media(min-width:640px){
+      #chat-overlay { align-items:center; }
+      #chat-panel { height:80vh; border-radius:1.5rem; margin:1rem; }
+    }
+    /* Chat message bubbles */
+    .msg-user { background:#0062c6; color:#fff; border-radius:1rem 1rem 0.2rem 1rem; }
+    .msg-assistant { background:#f1f5f9; color:#1e293b; border-radius:0.2rem 1rem 1rem 1rem; }
+    .msg-assistant.streaming::after {
+      content:''; display:inline-block; width:2px; height:14px;
+      background:#0062c6; margin-left:2px; vertical-align:text-bottom;
+      animation:blink .7s step-end infinite;
+    }
+    /* Suggested questions */
+    .suggestion-chip {
+      display:inline-block; font-size:0.75rem; font-weight:500; cursor:pointer;
+      padding:0.375rem 0.875rem; border-radius:9999px; border:1px solid #baddfd;
+      background:#f0f7ff; color:#004ea0; transition:all .15s;
+      white-space:nowrap;
+    }
+    .suggestion-chip:hover { background:#0062c6; color:#fff; border-color:#0062c6; }
+    /* Textarea auto-height */
+    #chat-input { min-height:44px; max-height:120px; resize:none; overflow-y:auto; }
+    /* Markdown rendering inside assistant chat bubbles */
+    .msg-assistant .prose { color: #1e293b; }
+    .msg-assistant .prose p { margin: 0 0 0.6em; line-height: 1.65; }
+    .msg-assistant .prose p:last-child { margin-bottom: 0; }
+    .msg-assistant .prose strong { font-weight: 700; color: #0f172a; }
+    .msg-assistant .prose em { font-style: italic; color: #334155; }
+    .msg-assistant .prose ul { margin: 0.4em 0 0.6em 0; padding-left: 1.25em; list-style: disc; }
+    .msg-assistant .prose ol { margin: 0.4em 0 0.6em 0; padding-left: 1.25em; list-style: decimal; }
+    .msg-assistant .prose li { margin-bottom: 0.3em; line-height: 1.55; }
+    .msg-assistant .prose li::marker { color: #0062c6; }
+    .msg-assistant .prose h1,.msg-assistant .prose h2,.msg-assistant .prose h3 {
+      font-weight: 700; color: #0f172a; margin: 0.75em 0 0.3em;
+      font-size: 0.9em; line-height: 1.3; }
+    .msg-assistant .prose code {
+      background: #e2e8f0; padding: 0.1em 0.4em; border-radius: 4px;
+      font-size: 0.85em; font-family: 'Menlo','Monaco',monospace; color: #0062c6; }
+    .msg-assistant .prose blockquote {
+      border-left: 3px solid #baddfd; padding-left: 0.75em;
+      margin: 0.5em 0; color: #475569; font-style: italic; }
+    .msg-assistant .prose hr { border: none; border-top: 1px solid #e2e8f0; margin: 0.75em 0; }
+    /* User bubble text */
+    .msg-user { white-space: pre-wrap; word-break: break-word; }
+    /* Streaming cursor */
+    .streaming-cursor::after {
+      content: ''; display: inline-block; width: 2px; height: 14px;
+      background: #0062c6; margin-left: 2px; vertical-align: text-bottom;
+      animation: blink .7s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
   </style>
 </head>
 <body class="h-full bg-slate-50 font-sans text-slate-800 antialiased">
@@ -79,13 +144,98 @@
         <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Why this course?</p>
         <h3 id="why-title" class="text-base font-bold text-slate-900 mt-0.5 leading-snug"></h3>
       </div>
-      <button onclick="closeWhy()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors flex-shrink-0 ml-3">
-        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
+      <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+        <button onclick="openChatFromWhy()"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ami-600 hover:bg-ami-700 text-white text-xs font-semibold transition-all shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+          Ask coach
+        </button>
+        <button onclick="closeWhy()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
     <div id="why-body" class="px-6 pt-5 space-y-6"></div>
+  </div>
+</div>
+
+<!-- ── AI Chat overlay ───────────────────────────────────────────────── -->
+<div id="chat-overlay" onclick="closeChatOverlay(event)">
+  <div id="chat-panel">
+
+    <!-- Chat header -->
+    <div class="flex-shrink-0 px-5 pt-5 pb-4 border-b border-slate-100">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-ami-500 to-ami-700 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 leading-none">AMI AI Coach</h3>
+            <p id="chat-subtitle" class="text-xs text-slate-500 mt-0.5 truncate max-w-xs"></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button onclick="clearChatHistory()"
+            class="text-xs text-slate-400 hover:text-slate-600 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100"
+            title="Clear conversation">
+            Clear
+          </button>
+          <button onclick="closeChatOverlay()"
+            class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message thread -->
+    <div id="chat-messages" class="flex-1 overflow-y-auto px-5 py-4 space-y-4 scroll-smooth">
+      <!-- Messages rendered here by JS -->
+    </div>
+
+    <!-- Suggested questions (shown when thread is empty) -->
+    <div id="chat-suggestions" class="flex-shrink-0 px-5 pb-3">
+      <p class="text-xs font-semibold text-slate-400 mb-2">Suggested questions</p>
+      <div id="suggestions-list" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <!-- Input bar -->
+    <div class="flex-shrink-0 px-5 pb-5 pt-3 border-t border-slate-100">
+      <div class="flex items-end gap-3">
+        <textarea
+          id="chat-input"
+          placeholder="Ask the coach anything about this recommendation…"
+          rows="1"
+          class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800
+                 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ami-500 focus:border-transparent
+                 focus:bg-white transition-all leading-relaxed"
+          onkeydown="handleChatKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button id="chat-send-btn" onclick="sendChatMessage()"
+          class="flex-shrink-0 w-10 h-10 rounded-xl bg-ami-600 hover:bg-ami-700 active:bg-ami-800
+                 flex items-center justify-center transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
+          <svg id="chat-send-icon" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+        </button>
+      </div>
+      <p class="text-xs text-slate-400 mt-2 text-center">
+        AI coach powered by Groq ·
+        <span id="chat-llm-status" class="font-medium"></span>
+      </p>
+    </div>
   </div>
 </div>
 
@@ -304,15 +454,26 @@ function renderRec(rec, idx) {
         <!-- Signal bar -->
         ${signalBar}
 
-        <!-- Footer: skills + why button -->
+        <!-- Footer: skills + why/chat buttons -->
         <div class="flex items-center justify-between mt-3 gap-2">
           <div class="flex flex-wrap gap-1">${skills}</div>
-          <button class="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-ami-600 hover:text-ami-800 bg-ami-50 hover:bg-ami-100 px-3 py-1.5 rounded-full transition-all border border-ami-200 group-hover:border-ami-300">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            Why this?
-          </button>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button onclick="event.stopPropagation(); openWhy(${idx})"
+              class="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-ami-700 bg-slate-100 hover:bg-ami-50 px-2.5 py-1.5 rounded-full transition-all border border-slate-200 hover:border-ami-200">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Why?
+            </button>
+            <button onclick="event.stopPropagation(); openChatDirect(${idx})"
+              class="flex items-center gap-1.5 text-xs font-semibold text-white bg-ami-600 hover:bg-ami-700 px-2.5 py-1.5 rounded-full transition-all shadow-sm">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+              </svg>
+              Ask coach
+            </button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -601,6 +762,277 @@ function closeWhy(e) {
 </script>
 
 <script>
+// ── Chat state ───────────────────────────────────────────────────
+let _chatHistory  = [];     // [{role, content}]
+let _chatRec      = null;   // the recommendation object currently in focus
+let _chatUserId   = null;
+let _chatStreaming = false;
+
+const SUGGESTED_QUESTIONS = [
+  "Why is this course right for me specifically?",
+  "What will I be able to do after completing this?",
+  "Is this the right level for where I am now?",
+  "How does this connect to my goal?",
+  "What should I do after this course?",
+  "Are there any prerequisites I should know about?",
+];
+
+// ── Open / close chat ────────────────────────────────────────────
+function openChatFromWhy() {
+  if (!_lastData || _selectedIdx === null) return;
+  _chatRec    = _lastData.recommendations[_selectedIdx];
+  _chatUserId = _lastData.user_id;
+  // Don't clear history when re-opening same rec — feels natural
+  _renderChatThread();
+  document.getElementById('chat-subtitle').textContent = _chatRec.course.title;
+  document.getElementById('chat-llm-status').textContent =
+    _lastData.llm_enhanced ? 'AI enhanced' : 'Set GROQ_API_KEY to enable AI';
+  document.getElementById('chat-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('chat-input').focus(), 100);
+}
+
+function openChatDirect(idx) {
+  if (!_lastData) return;
+  // Clear history if switching to a different recommendation
+  if (_selectedIdx !== idx) _chatHistory = [];
+  _selectedIdx = idx;
+  openChatFromWhy();
+}
+
+function closeChatOverlay(e) {
+  if (e && e.target !== document.getElementById('chat-overlay')) return;
+  document.getElementById('chat-overlay').classList.remove('open');
+}
+
+function clearChatHistory() {
+  _chatHistory = [];
+  _renderChatThread();
+}
+
+// ── Auto-resize textarea ─────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+}
+
+// ── Render full thread ───────────────────────────────────────────
+function _renderChatThread() {
+  const container = document.getElementById('chat-messages');
+  const suggestions = document.getElementById('chat-suggestions');
+
+  if (_chatHistory.length === 0) {
+    // Welcome state
+    container.innerHTML = `
+      <div class="flex flex-col items-center justify-center h-full text-center py-8 animate-fade-in">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-ami-500 to-ami-700 flex items-center justify-center mb-4 shadow-md">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+        </div>
+        <p class="text-sm font-semibold text-slate-700">Ask me anything about this recommendation</p>
+        <p class="text-xs text-slate-400 mt-1 max-w-xs">I know your profile, learning history, and exactly why this course was suggested for you.</p>
+      </div>`;
+    suggestions.classList.remove('hidden');
+    _renderSuggestions();
+  } else {
+    suggestions.classList.add('hidden');
+    container.innerHTML = '';
+    _chatHistory.forEach(m => {
+      container.appendChild(_buildBubble(m.role, m.content, false));
+    });
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+function _renderSuggestions() {
+  const list = document.getElementById('suggestions-list');
+  list.innerHTML = SUGGESTED_QUESTIONS.slice(0, 4).map(q =>
+    `<button class="suggestion-chip" onclick="useSuggestion(this)">${escHtml(q)}</button>`
+  ).join('');
+}
+
+function useSuggestion(btn) {
+  document.getElementById('chat-input').value = btn.textContent;
+  document.getElementById('chat-suggestions').classList.add('hidden');
+  sendChatMessage();
+}
+
+// ── Markdown helper ──────────────────────────────────────────────
+function _md(text) {
+  // Configure marked: breaks on single newlines (matches coach output style)
+  if (typeof marked !== 'undefined') {
+    marked.setOptions({ breaks: true, gfm: true });
+    return marked.parse(text || '');
+  }
+  // Fallback if CDN failed: basic escaping + linebreaks
+  return escHtml(text).replace(/\n/g, '<br>');
+}
+
+// ── Build a message bubble ───────────────────────────────────────
+function _buildBubble(role, content, isStreaming) {
+  const wrap = document.createElement('div');
+  wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`;
+
+  const bubble = document.createElement('div');
+  bubble.className = [
+    'max-w-[85%] px-4 py-3 text-sm',
+    role === 'user' ? 'msg-user' : 'msg-assistant',
+  ].join(' ');
+
+  if (role === 'assistant') {
+    // Avatar + bubble row
+    const row = document.createElement('div');
+    row.className = 'flex items-end gap-2';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'w-6 h-6 rounded-full bg-gradient-to-br from-ami-500 to-ami-700 flex-shrink-0 mb-0.5 flex items-center justify-center';
+    avatar.innerHTML = `<svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01"/></svg>`;
+
+    // Inner prose div for markdown content
+    const prose = document.createElement('div');
+    prose.className = 'prose';
+    if (isStreaming) {
+      // While streaming: plain text with cursor, upgrade to markdown on done
+      prose.classList.add('streaming-cursor');
+      prose.textContent = content;
+    } else {
+      prose.innerHTML = _md(content);
+    }
+    bubble.appendChild(prose);
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    wrap.appendChild(row);
+  } else {
+    // User bubble: plain text, no markdown
+    bubble.textContent = content;
+    wrap.appendChild(bubble);
+  }
+
+  bubble.dataset.role = role;
+  return wrap;
+}
+
+// ── Send a message ───────────────────────────────────────────────
+async function sendChatMessage() {
+  if (_chatStreaming || !_chatRec || !_chatUserId) return;
+
+  const input = document.getElementById('chat-input');
+  const question = input.value.trim();
+  if (!question) return;
+
+  // Clear input
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Hide suggestions
+  document.getElementById('chat-suggestions').classList.add('hidden');
+
+  // Add user bubble
+  const container = document.getElementById('chat-messages');
+  if (_chatHistory.length === 0) container.innerHTML = ''; // clear welcome state
+  _chatHistory.push({ role: 'user', content: question });
+  container.appendChild(_buildBubble('user', question, false));
+  container.scrollTop = container.scrollHeight;
+
+  // Add streaming assistant bubble
+  const assistantWrap = _buildBubble('assistant', '', true);
+  container.appendChild(assistantWrap);
+  container.scrollTop = container.scrollHeight;
+
+  // Target the prose div inside the assistant bubble for live updates
+  const proseEl = assistantWrap.querySelector('.prose');
+  const bubbleEl = assistantWrap.querySelector('.msg-assistant');
+
+  // Disable send while streaming
+  _chatStreaming = true;
+  const sendBtn = document.getElementById('chat-send-btn');
+  sendBtn.disabled = true;
+
+  let fullResponse = '';
+
+  function _finalizeBubble() {
+    // Upgrade from plain-text streaming to rendered markdown
+    proseEl.classList.remove('streaming-cursor');
+    proseEl.innerHTML = _md(fullResponse);
+  }
+
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id:        _chatUserId,
+        question:       question,
+        recommendation: _chatRec,
+        history:        _chatHistory.slice(0, -1),
+      }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      proseEl.classList.remove('streaming-cursor');
+      proseEl.innerHTML = `<p class="text-red-500">${escHtml(err.error || 'Something went wrong. Please try again.')}</p>`;
+    } else {
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const chunk = line.slice(6);
+
+          if (chunk === '[DONE]') {
+            _finalizeBubble();
+            break;
+          }
+          if (chunk.startsWith('[ERROR]')) {
+            proseEl.classList.remove('streaming-cursor');
+            proseEl.innerHTML = `<p class="text-red-500">${escHtml(chunk.slice(8))}</p>`;
+            break;
+          }
+          // Unescape \n back to real newlines and update live
+          fullResponse += chunk.replace(/\\n/g, '\n');
+          proseEl.textContent = fullResponse; // plain text while streaming
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+      // Ensure finalized in case [DONE] wasn't the last line
+      if (proseEl.classList.contains('streaming-cursor')) _finalizeBubble();
+    }
+  } catch (e) {
+    proseEl.classList.remove('streaming-cursor');
+    proseEl.innerHTML = `<p class="text-red-500">Network error: ${escHtml(e.message)}</p>`;
+  }
+
+  // Save to history
+  if (fullResponse) {
+    _chatHistory.push({ role: 'assistant', content: fullResponse });
+  }
+
+  _chatStreaming = false;
+  sendBtn.disabled = false;
+  input.focus();
+  container.scrollTop = container.scrollHeight;
+}
+
 // ── Main fetch ───────────────────────────────────────────────────
 async function fetchRecs() {
   const userId = document.getElementById('user-id').value.trim();
@@ -668,8 +1100,15 @@ async function fetchRecs() {
   });
 }
 
-// Keyboard: Escape closes the panel
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeWhy(); });
+// Keyboard: Escape closes whichever panel is open (chat takes priority)
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('chat-overlay').classList.contains('open')) {
+    closeChatOverlay();
+  } else {
+    closeWhy();
+  }
+});
 
 fetchRecs();
 </script>

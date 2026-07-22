@@ -13,6 +13,7 @@ Verifies:
 """
 
 import json
+from unittest.mock import patch
 from django.test import TestCase, Client
 from ami_course_recommendations.models import User, Course, UsageEvent, SurveyResponse
 from datagen.generate import generate_all
@@ -43,10 +44,10 @@ class RecommendationsEndpointTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         random.seed(42)
-        generate_all(n_users=50, clear=True)
+        # Patch LLM so no network calls during data generation or API hits
+        with patch("engine.llm.enhance_reason", return_value="__test__"):
+            generate_all(n_users=50, clear=True)
         cls.client = Client()
-
-        # Grab one user we know exists
         cls.user = User.objects.first()
 
     def _get(self, user_id, **params):
@@ -54,7 +55,8 @@ class RecommendationsEndpointTests(TestCase):
         url = f"/api/users/{user_id}/recommendations"
         if qs:
             url += f"?{qs}"
-        return self.client.get(url)
+        with patch("engine.llm.enhance_reason", return_value="__test__"):
+            return self.client.get(url)
 
     def test_returns_200_for_known_user(self):
         resp = self._get(self.user.user_id)
@@ -218,7 +220,8 @@ class ColdStartVsActiveUserTests(TestCase):
     def setUp(self):
         self.client = Client()
         random.seed(7)
-        generate_all(n_users=50, clear=True)
+        with patch("engine.llm.enhance_reason", return_value="__test__"):
+            generate_all(n_users=50, clear=True)
 
         # Find a cold-start user (no usage events)
         users_with_events = set(
@@ -234,9 +237,8 @@ class ColdStartVsActiveUserTests(TestCase):
     def test_cold_start_user_gets_recommendations(self):
         if not self.cold_user:
             self.skipTest("No cold-start users in test dataset")
-        resp = self.client.get(
-            f"/api/users/{self.cold_user.user_id}/recommendations"
-        )
+        with patch("engine.llm.enhance_reason", return_value="__test__"):
+            resp = self.client.get(f"/api/users/{self.cold_user.user_id}/recommendations")
         data = json.loads(resp.content)
         self.assertEqual(resp.status_code, 200)
         self.assertGreater(data["recommendation_count"], 0)
@@ -244,47 +246,33 @@ class ColdStartVsActiveUserTests(TestCase):
     def test_cold_start_user_has_zero_usage_confidence(self):
         if not self.cold_user:
             self.skipTest("No cold-start users in test dataset")
-        resp = self.client.get(
-            f"/api/users/{self.cold_user.user_id}/recommendations"
-        )
+        with patch("engine.llm.enhance_reason", return_value="__test__"):
+            resp = self.client.get(f"/api/users/{self.cold_user.user_id}/recommendations")
         data = json.loads(resp.content)
         self.assertAlmostEqual(data["usage_confidence"], 0.0)
 
     def test_active_user_has_higher_confidence_than_cold(self):
         if not self.cold_user or not self.active_user:
             self.skipTest("Need both cold and active users in test dataset")
-        cold_resp = self.client.get(
-            f"/api/users/{self.cold_user.user_id}/recommendations"
-        )
-        active_resp = self.client.get(
-            f"/api/users/{self.active_user.user_id}/recommendations"
-        )
+        with patch("engine.llm.enhance_reason", return_value="__test__"):
+            cold_resp = self.client.get(f"/api/users/{self.cold_user.user_id}/recommendations")
+            active_resp = self.client.get(f"/api/users/{self.active_user.user_id}/recommendations")
         cold_conf = json.loads(cold_resp.content)["usage_confidence"]
         active_conf = json.loads(active_resp.content)["usage_confidence"]
         self.assertGreater(active_conf, cold_conf)
 
     def test_completed_courses_not_in_recommendations(self):
-        """Hard filter: a user should never be recommended a course they already completed."""
         if not self.active_user:
             self.skipTest("No active users in test dataset")
-
         completed_ids = set(
             UsageEvent.objects.filter(
-                user=self.active_user,
-                event_type="completed",
-                progress_pct__gte=95.0,
+                user=self.active_user, event_type="completed", progress_pct__gte=95.0,
             ).values_list("course_id", flat=True)
         )
         if not completed_ids:
             self.skipTest("Active user has no qualifying completed courses")
-
-        resp = self.client.get(
-            f"/api/users/{self.active_user.user_id}/recommendations?n=20"
-        )
+        with patch("engine.llm.enhance_reason", return_value="__test__"):
+            resp = self.client.get(f"/api/users/{self.active_user.user_id}/recommendations?n=20")
         data = json.loads(resp.content)
         recommended_ids = {r["course"]["course_id"] for r in data["recommendations"]}
-        overlap = completed_ids & recommended_ids
-        self.assertEqual(
-            overlap, set(),
-            f"Completed courses appeared in recommendations: {overlap}",
-        )
+        self.assertEqual(completed_ids & recommended_ids, set())

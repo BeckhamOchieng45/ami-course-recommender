@@ -142,3 +142,141 @@ def enhance_reason(
         # Log but never raise — the recommendation must always return
         logger.warning("Groq enhancement failed (%s), using templated reason", exc)
         return templated_reason
+
+
+# ---------------------------------------------------------------------------
+# Chat system prompt — full coaching context
+# ---------------------------------------------------------------------------
+
+_CHAT_SYSTEM_PROMPT = """You are the AMI AI Coach — a warm, direct, outcomes-focused learning advisor
+for African entrepreneurs, SME managers, and corporate employees.
+
+A learner is asking you follow-up questions about a specific course recommendation they received.
+You have been given full context about:
+- The learner's profile (role, industry, seniority, stated goal)
+- The recommended course (title, level, skills taught)
+- Exactly why the engine recommended it (which signals fired and how much they contributed)
+
+Your job:
+1. Explain the recommendation in plain language the learner will find useful and motivating.
+2. Answer their question directly and honestly — if a course might not be right for them, say so.
+3. Connect the recommendation to their stated goal and work context wherever possible.
+4. Be warm but concise. Do not pad answers. Do not repeat information they didn't ask about.
+5. Never mention scores, weights, percentages, algorithms, or "the engine". 
+   Speak as a coach who knows the learner, not as a system explaining itself.
+6. If they ask something outside course recommendations, gently redirect to their learning path.
+
+Context about this learner and recommendation is provided below.
+"""
+
+
+def build_chat_system_message(
+    user_profile: dict,
+    course: dict,
+    recommendation: dict,
+) -> str:
+    """
+    Build the full system message for the coaching chat, embedding the
+    learner's profile and recommendation context so Groq can answer
+    follow-up questions with specific, grounded answers.
+
+    Args:
+        user_profile:   Dict with role, industry, seniority, stated_goal, usage_confidence
+        course:         Dict with title, level, programme_area, skills_taught, duration_mins
+        recommendation: Dict with reason, reason_detail, reason_driver, score_breakdown
+    """
+    conf = user_profile.get("usage_confidence", 0)
+    signal_mode = (
+        "no usage history yet (cold-start — recommendations based on survey and work context only)"
+        if conf == 0
+        else f"{int(conf * 100)}% behavior-driven (based on actual course completions)"
+        if conf < 1
+        else "fully behavior-driven (rich completion history available)"
+    )
+
+    # Summarise which signal contributed most
+    breakdown = recommendation.get("score_breakdown", [])
+    if breakdown:
+        top = max(breakdown, key=lambda b: b.get("contribution", 0))
+        top_signal = top.get("component", "").replace("_", " ")
+        signal_summary = f"The primary signal was '{top_signal}'."
+    else:
+        signal_summary = ""
+
+    skills = ", ".join(course.get("skills_taught", []))
+
+    return f"""{_CHAT_SYSTEM_PROMPT}
+
+--- LEARNER PROFILE ---
+Role: {user_profile.get('role', 'unknown').replace('_', ' ')}
+Industry: {user_profile.get('industry', 'unknown').replace('_', ' ')}
+Seniority: {user_profile.get('seniority', 'unknown').replace('-', ' ')}
+Stated goal: {user_profile.get('stated_goal', 'not provided')}
+Signal mode: {signal_mode}
+
+--- RECOMMENDED COURSE ---
+Title: {course.get('title', '')}
+Level: {course.get('level', '')}
+Programme area: {course.get('programme_area', '').replace('_', ' ')}
+Duration: {course.get('duration_mins', '')} minutes
+Skills taught: {skills}
+
+--- WHY THIS WAS RECOMMENDED ---
+Reason: {recommendation.get('reason', '')}
+Detail: {recommendation.get('reason_detail', '')}
+Primary driver: {recommendation.get('reason_driver', '')}
+{signal_summary}
+"""
+
+
+def stream_chat(
+    system_message: str,
+    messages: list[dict],
+) -> "Iterator[str]":
+    """
+    Stream a coaching chat response token-by-token using Groq.
+
+    Yields raw text chunks as they arrive. The caller is responsible for
+    assembling them into an SSE stream or WebSocket messages.
+
+    If Groq is unavailable, yields a single fallback message so the UI
+    always gets a response.
+
+    Args:
+        system_message: Full context-rich system prompt from build_chat_system_message()
+        messages:       Conversation history as [{"role": "user"|"assistant", "content": "..."}]
+
+    Yields:
+        str: text chunks from the LLM stream
+    """
+    from typing import Iterator
+
+    client = _get_client()
+    if client is None:
+        yield (
+            "The AI coach is not available right now — GROQ_API_KEY is not configured. "
+            "Set it in your .env file to enable live coaching conversations."
+        )
+        return
+
+    try:
+        stream = client.chat.completions.create(
+            model=_get_model(),
+            messages=[
+                {"role": "system", "content": system_message},
+                *messages,
+            ],
+            temperature=0.5,
+            max_tokens=600,       # Generous for a chat response, but capped
+            stream=True,
+            timeout=30.0,
+        )
+
+        for chunk in stream:
+            delta = chunk.choices[0].delta
+            if delta and delta.content:
+                yield delta.content
+
+    except Exception as exc:
+        logger.warning("Groq chat stream failed: %s", exc)
+        yield f"Sorry, I ran into an issue generating a response. Please try again. (Error: {exc})"

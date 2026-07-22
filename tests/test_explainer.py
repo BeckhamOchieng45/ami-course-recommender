@@ -1,15 +1,8 @@
 """
 Tests for the explainability layer.
-
-Verifies that:
-- Every recommendation carries a non-empty human-readable reason
-- Reason text references actual course titles and user data (not generic placeholders)
-- Survey-driven recommendations mention the matched skill/goal
-- Usage-driven recommendations reference the prior completed course
-- Cold-start users receive an honest fallback reason, not a broken string
-- build_recommendations() produces correctly ordered, 1-indexed output
 """
 
+from unittest.mock import patch
 from django.test import TestCase
 from ami_course_recommendations.models import User, Course, UsageEvent, SurveyResponse
 from engine.coldstart import aggregate_scores, rank_courses
@@ -209,64 +202,54 @@ class BuildRecommendationsTests(TestCase):
             for i in range(10)
         ]
 
+    # Patch LLM for all tests in this class so no network calls are made
+    def _build(self, n=5):
+        with patch("engine.llm.enhance_reason", return_value="__mocked__"):
+            scores = rank_courses(self.user, self.courses)
+            return build_recommendations(self.user, scores, n=n)
+
     def test_returns_n_recommendations(self):
-        scores = rank_courses(self.user, self.courses)
-        recs = build_recommendations(self.user, scores, n=5)
+        recs = self._build(n=5)
         self.assertEqual(len(recs), 5)
 
     def test_positions_are_one_indexed_and_sequential(self):
-        scores = rank_courses(self.user, self.courses)
-        recs = build_recommendations(self.user, scores, n=5)
+        recs = self._build(n=5)
         for i, rec in enumerate(recs, start=1):
             self.assertEqual(rec.position, i)
 
     def test_scores_are_non_increasing(self):
-        """Recommendations must be sorted descending by score."""
-        scores = rank_courses(self.user, self.courses)
-        recs = build_recommendations(self.user, scores, n=5)
+        recs = self._build(n=5)
         for i in range(len(recs) - 1):
-            self.assertGreaterEqual(
-                recs[i].score, recs[i + 1].score,
-                f"Score at position {i+1} should be >= score at position {i+2}",
-            )
+            self.assertGreaterEqual(recs[i].score, recs[i + 1].score)
 
     def test_each_recommendation_has_reason(self):
-        scores = rank_courses(self.user, self.courses)
-        recs = build_recommendations(self.user, scores, n=5)
+        recs = self._build(n=5)
         for rec in recs:
             self.assertTrue(len(rec.reason) > 0, f"Position {rec.position} has empty reason")
 
     def test_breakdown_has_three_components(self):
-        """Score breakdown should expose all three components."""
-        scores = rank_courses(self.user, self.courses)
-        recs = build_recommendations(self.user, scores, n=3)
+        recs = self._build(n=3)
         for rec in recs:
-            self.assertEqual(
-                len(rec.score_breakdown), 3,
-                f"Expected 3 breakdown components at position {rec.position}",
-            )
+            self.assertEqual(len(rec.score_breakdown), 3)
 
     def test_breakdown_component_names_are_human_readable(self):
-        """Component names in breakdown should have 'score_' prefix stripped."""
-        scores = rank_courses(self.user, self.courses)
-        recs = build_recommendations(self.user, scores, n=1)
+        recs = self._build(n=1)
         component_names = {b["component"] for b in recs[0].score_breakdown}
-        # Should NOT contain 'score_' prefix
         for name in component_names:
-            self.assertFalse(
-                name.startswith("score_"),
-                f"Component name '{name}' should not start with 'score_'",
-            )
+            self.assertFalse(name.startswith("score_"))
 
     def test_returns_fewer_than_n_if_not_enough_courses(self):
-        """If fewer candidates than n, return what's available without error."""
-        two_courses = self.courses[:2]
-        scores = rank_courses(self.user, two_courses)
-        recs = build_recommendations(self.user, scores, n=5)
+        with patch("engine.llm.enhance_reason", return_value="__mocked__"):
+            scores = rank_courses(self.user, self.courses[:2])
+            recs = build_recommendations(self.user, scores, n=5)
         self.assertEqual(len(recs), 2)
 
     def test_recommendation_is_correct_type(self):
-        scores = rank_courses(self.user, self.courses)
-        recs = build_recommendations(self.user, scores, n=1)
+        recs = self._build(n=1)
         self.assertIsInstance(recs[0], Recommendation)
         self.assertIsInstance(recs[0].course, Course)
+
+    def test_coaching_reason_is_non_empty(self):
+        recs = self._build(n=3)
+        for rec in recs:
+            self.assertTrue(len(rec.coaching_reason) > 0)
