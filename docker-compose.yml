@@ -1,0 +1,58 @@
+services:
+
+  # ── PostgreSQL (ARM64-native image for M1/M2) ─────────────────
+  db:
+    image: postgres:16-alpine
+    platform: linux/arm64
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-ami}
+      POSTGRES_USER:     ${POSTGRES_USER:-ami}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ami}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ami} -d ${POSTGRES_DB:-ami}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  # ── Django / Gunicorn ─────────────────────────────────────────
+  web:
+    build:
+      context: .
+      # Always build for the container's native architecture (linux/arm64 on M1)
+      platforms:
+        - linux/arm64
+    platform: linux/arm64
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-ami}
+      POSTGRES_USER:     ${POSTGRES_USER:-ami}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ami}
+      POSTGRES_HOST:     db
+      POSTGRES_PORT:     "5432"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount only source code — NOT the whole project root.
+      # This keeps the container's .venv (built for linux/arm64) intact
+      # and avoids the "cannot execute" error caused by mounting the macOS venv.
+      - ./ami_engine:/home/ami/app/ami_engine
+      - ./ami_course_recommendations:/home/ami/app/ami_course_recommendations
+      - ./engine:/home/ami/app/engine
+      - ./datagen:/home/ami/app/datagen
+      - ./tests:/home/ami/app/tests
+      - ./ui:/home/ami/app/ui
+      - ./manage.py:/home/ami/app/manage.py
+      - ./entrypoint.sh:/home/ami/app/entrypoint.sh
+
+volumes:
+  postgres_data:

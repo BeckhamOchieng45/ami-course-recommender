@@ -1,0 +1,28 @@
+# Never copy the host venv — the Dockerfile builds its own inside the image
+.venv/
+
+# Runtime artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+
+# Local database (use Postgres in Docker)
+db.sqlite3
+
+# Generated static files
+staticfiles/
+
+# Git
+.git/
+.gitignore
+
+# Secrets (injected via env_file at runtime, never baked into the image)
+.env
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*.swo

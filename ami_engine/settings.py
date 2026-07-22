@@ -18,7 +18,10 @@ SECRET_KEY = "django-insecure-!3u0fh7hdrl_er$#h2y#bsfne$q^*8^42p2&kzeuay^4^h&cmh
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "testserver"]
+ALLOWED_HOSTS = [
+    "localhost", "127.0.0.1", "0.0.0.0", "testserver",
+    *[h for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h],
+]
 
 
 # Application definition
@@ -65,12 +68,32 @@ WSGI_APPLICATION = "ami_engine.wsgi.application"
 
 
 # Database
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Postgres is used when POSTGRES_HOST is set AND is not the loopback.
+# This means:
+#   - docker-compose (POSTGRES_HOST=db)     → Postgres
+#   - local dev / CI (no POSTGRES_HOST)     → SQLite
+#   - pytest (TEST_USE_SQLITE=1 override)   → SQLite always
+_postgres_host = os.environ.get("POSTGRES_HOST", "")
+_force_sqlite  = os.environ.get("TEST_USE_SQLITE", "") == "1"
+
+if _postgres_host and not _force_sqlite:
+    DATABASES = {
+        "default": {
+            "ENGINE":   "django.db.backends.postgresql",
+            "NAME":     os.environ.get("POSTGRES_DB",       "ami"),
+            "USER":     os.environ.get("POSTGRES_USER",     "ami"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "ami"),
+            "HOST":     _postgres_host,
+            "PORT":     os.environ.get("POSTGRES_PORT",     "5432"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME":   BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -92,6 +115,7 @@ USE_TZ = True
 # Static files
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "ui"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 # Django REST Framework
