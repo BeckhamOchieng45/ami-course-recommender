@@ -22,6 +22,7 @@ from ami_course_recommendations.models import User, Course
 from engine.filters import get_candidates
 from engine.coldstart import rank_courses
 from engine.explainer import build_recommendations
+from engine import llm as groq_llm
 
 # Maximum recommendations a caller can request in one response
 MAX_N: int = 20
@@ -34,8 +35,8 @@ def _serialize_recommendation(rec) -> dict:
     """
     Serialize a Recommendation object to a lean JSON-compatible dict.
 
-    Keeps the payload small for low-bandwidth clients while exposing the
-    full score_breakdown for debugging/analysis.
+    coaching_reason: Groq-enhanced version in AMI's coaching voice.
+                     Identical to reason when GROQ_API_KEY is not set.
     """
     return {
         "position": rec.position,
@@ -51,6 +52,7 @@ def _serialize_recommendation(rec) -> dict:
         "score": rec.score,
         "usage_confidence": rec.usage_confidence,
         "reason": rec.reason,
+        "coaching_reason": rec.coaching_reason,
         "reason_detail": rec.reason_detail,
         "reason_driver": rec.reason_driver,
         "score_breakdown": rec.score_breakdown,
@@ -120,6 +122,7 @@ class RecommendationsView(View):
                 {
                     "user_id": user_id,
                     "usage_confidence": 0.0,
+                    "llm_enhanced": groq_llm.is_available(),
                     "recommendation_count": 0,
                     "recommendations": [],
                     "message": "No eligible courses found. You may have completed all available courses.",
@@ -138,6 +141,7 @@ class RecommendationsView(View):
             {
                 "user_id": user_id,
                 "usage_confidence": usage_confidence,
+                "llm_enhanced": groq_llm.is_available(),
                 "recommendation_count": len(recommendations),
                 "recommendations": [
                     _serialize_recommendation(r) for r in recommendations

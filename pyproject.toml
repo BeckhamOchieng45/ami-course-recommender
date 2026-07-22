@@ -8,6 +8,7 @@ dependencies = [
     "django>=6.0.7",
     "djangorestframework>=3.17.1",
     "faker>=40.32.0",
+    "groq>=1.5.0",
     "pandas>=3.0.3",
     "python-dotenv>=1.2.2",
 ]

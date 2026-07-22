@@ -68,8 +68,13 @@ class RecommendationsEndpointTests(TestCase):
     def test_response_has_required_top_level_keys(self):
         resp = self._get(self.user.user_id)
         data = json.loads(resp.content)
-        for key in ["user_id", "usage_confidence", "recommendation_count", "recommendations"]:
+        for key in ["user_id", "usage_confidence", "llm_enhanced", "recommendation_count", "recommendations"]:
             self.assertIn(key, data, f"Missing top-level key: {key}")
+
+    def test_llm_enhanced_flag_is_boolean(self):
+        resp = self._get(self.user.user_id)
+        data = json.loads(resp.content)
+        self.assertIsInstance(data["llm_enhanced"], bool)
 
     def test_default_returns_five_recommendations(self):
         resp = self._get(self.user.user_id)
@@ -83,10 +88,11 @@ class RecommendationsEndpointTests(TestCase):
         self.assertLessEqual(data["recommendation_count"], 3)
 
     def test_each_recommendation_has_required_fields(self):
-        resp = self._get(self.user.user_id)
+        resp = self._get(self.user.user_id, n=5)
         data = json.loads(resp.content)
         required = {"position", "course", "score", "usage_confidence",
-                    "reason", "reason_detail", "reason_driver", "score_breakdown"}
+                    "reason", "coaching_reason", "reason_detail",
+                    "reason_driver", "score_breakdown"}
         for rec in data["recommendations"]:
             missing = required - set(rec.keys())
             self.assertEqual(missing, set(), f"Recommendation missing fields: {missing}")
@@ -130,6 +136,27 @@ class RecommendationsEndpointTests(TestCase):
         for rec in data["recommendations"]:
             self.assertGreater(len(rec["reason"]), 0,
                 f"Empty reason at position {rec['position']}")
+
+    def test_coaching_reason_is_non_empty_string(self):
+        """coaching_reason must always be populated (falls back to reason without Groq key)."""
+        resp = self._get(self.user.user_id, n=5)
+        data = json.loads(resp.content)
+        for rec in data["recommendations"]:
+            self.assertGreater(len(rec["coaching_reason"]), 0,
+                f"Empty coaching_reason at position {rec['position']}")
+
+    def test_coaching_reason_equals_reason_without_groq_key(self):
+        """Without GROQ_API_KEY, coaching_reason must equal reason (no hallucination)."""
+        import os
+        if os.environ.get("GROQ_API_KEY", "").strip():
+            self.skipTest("GROQ_API_KEY is set — fallback test not applicable")
+        resp = self._get(self.user.user_id, n=3)
+        data = json.loads(resp.content)
+        for rec in data["recommendations"]:
+            self.assertEqual(
+                rec["coaching_reason"], rec["reason"],
+                f"Without Groq key, coaching_reason should equal reason at position {rec['position']}",
+            )
 
     def test_usage_confidence_is_between_zero_and_one(self):
         resp = self._get(self.user.user_id)

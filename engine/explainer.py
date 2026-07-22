@@ -31,6 +31,7 @@ Template patterns (matching DESIGN.md examples):
 from dataclasses import dataclass
 from ami_course_recommendations.models import User, Course, UsageEvent
 from engine.coldstart import AggregatedScore
+from engine import llm
 
 
 # ---------------------------------------------------------------------------
@@ -255,6 +256,12 @@ class Recommendation:
 
     Positions are 1-indexed. All fields are JSON-serialisable primitives
     except course (serialised separately by the view layer).
+
+    Fields:
+        reason:          Templated reason string — deterministic and auditable.
+        coaching_reason: Same content re-voiced in AMI's coaching tone by Groq.
+                         Identical to reason when GROQ_API_KEY is not configured
+                         or the API call fails, so callers always get a valid string.
     """
     position: int
     course: Course
@@ -264,6 +271,7 @@ class Recommendation:
     reason_detail: str
     reason_driver: str
     score_breakdown: list[dict]
+    coaching_reason: str   # Groq-enhanced version; falls back to reason
 
 
 def build_recommendations(
@@ -274,6 +282,13 @@ def build_recommendations(
     """
     Convert a list of AggregatedScores into ranked Recommendation objects
     ready for API serialisation.
+
+    Each recommendation carries two reason strings:
+    - reason:          Deterministic template — always present, fully auditable.
+    - coaching_reason: Groq-enhanced version in AMI's coaching voice. Falls back
+                       to the templated reason if GROQ_API_KEY is absent or the
+                       call fails. The coaching bot should display this field;
+                       the audit trail should use reason.
 
     Args:
         user:          The learner receiving recommendations
@@ -287,6 +302,13 @@ def build_recommendations(
 
     for position, score in enumerate(ranked_scores[:n], start=1):
         reason_obj = build_reason(user, score)
+
+        # Enhance the short reason with Groq coaching tone.
+        # Pass the user's stated goal as context so Groq can personalise.
+        coaching_reason = llm.enhance_reason(
+            templated_reason=reason_obj.short,
+            context=user.stated_goal if user.stated_goal else None,
+        )
 
         breakdown = [
             {
@@ -307,6 +329,7 @@ def build_recommendations(
             reason_detail=reason_obj.detail,
             reason_driver=reason_obj.driver,
             score_breakdown=breakdown,
+            coaching_reason=coaching_reason,
         ))
 
     return results
