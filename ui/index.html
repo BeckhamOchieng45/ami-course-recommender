@@ -327,6 +327,7 @@ let _lastData=null, _selectedIdx=null, _activeLearner=null;
 let _chatHistory=[], _chatRec=null, _chatUserId=null, _chatStreaming=false;
 let _page=1, _totalPages=1, _signalFilter='', _searchQuery='';
 let _searchTimer=null;
+let _learnersData=[];  // current page of learner objects, indexed by position
 </script>
 
 <script>
@@ -392,11 +393,15 @@ async function loadLearners(page=1) {
     };
     const AVATAR_COLORS = ['bg-ami-100 text-ami-700','bg-emerald-100 text-emerald-700','bg-amber-100 text-amber-700','bg-violet-100 text-violet-700','bg-rose-100 text-rose-700'];
 
+    // Store learners so selectLearner can look them up by index — avoids
+    // JSON double-encoding bugs when passing objects through onclick attributes
+    _learnersData = data.learners;
+
     list.innerHTML = data.learners.map((l, i) => {
       const colorClass = AVATAR_COLORS[i % AVATAR_COLORS.length];
       const isActive = _activeLearner && _activeLearner.user_id === l.user_id;
       return `
-        <div class="learner-item ${isActive?'active':''}" onclick="selectLearner(${JSON.stringify(JSON.stringify(l))}, this)">
+        <div class="learner-item ${isActive?'active':''}" data-idx="${i}" onclick="selectLearner(${i}, this)">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-full ${colorClass} flex items-center justify-center flex-shrink-0 text-xs font-bold">
               ${escHtml(l.initials)}
@@ -417,8 +422,9 @@ async function loadLearners(page=1) {
   }
 }
 
-function selectLearner(jsonStr, el) {
-  const learner = JSON.parse(jsonStr);
+function selectLearner(idx, el) {
+  const learner = _learnersData[idx];
+  if (!learner) return;  // safety guard
   _activeLearner = learner;
   _lastData = null; _selectedIdx = null;
 
