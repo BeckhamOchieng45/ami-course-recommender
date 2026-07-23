@@ -19,6 +19,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from ami_course_recommendations.models import User, Course
+from ami_course_recommendations.auth_views import jwt_required
 from engine.filters import get_candidates
 from engine.coldstart import rank_courses
 from engine.explainer import build_recommendations
@@ -82,6 +83,7 @@ class RecommendationsView(View):
         { "error": "Invalid value for n: ...", "detail": "..." }
     """
 
+    @jwt_required
     def get(self, request, user_id: str):
         # --- Parse and validate ?n ---
         n_param = request.GET.get("n", str(DEFAULT_N))

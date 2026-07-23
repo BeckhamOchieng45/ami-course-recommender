@@ -986,11 +986,22 @@ def generate_all(n_users: int = 1000, clear: bool = True) -> None:
     print(f"  Inserted {len(all_events)} usage events into DB")
 
     # --- Summary ---
-    cold_start_users = sum(1 for u in user_dicts if not any(
-        e["user_id"] == u["user_id"] for e in []  # Will check from events
-    ))
     n_completed = sum(1 for e in all_events if e.event_type == "completed")
     n_dropped = sum(1 for e in all_events if e.event_type == "dropped")
+
+    # --- Superuser ---
+    from django.contrib.auth.models import User as DjangoUser
+    if not DjangoUser.objects.filter(username="admin@email.com").exists():
+        DjangoUser.objects.create_superuser(
+            username="admin@email.com",
+            email="admin@email.com",
+            password="password",
+            first_name="Admin",
+            last_name="AMI",
+        )
+        print("  Superuser created: admin@email.com / password")
+    else:
+        print("  Superuser already exists.")
 
     print("\n=== Generation complete ===")
     print(f"  Courses:         {Course.objects.count()}")

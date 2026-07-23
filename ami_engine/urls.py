@@ -1,27 +1,30 @@
-"""
-URL configuration for ami_engine project.
-"""
+"""URL configuration for ami_engine project."""
 
 from pathlib import Path
 from django.contrib import admin
 from django.urls import path, include
 from django.http import FileResponse, Http404
 
-_UI_FILE = Path(__file__).resolve().parent.parent / "ui" / "index.html"
+_UI_DIR  = Path(__file__).resolve().parent.parent / "ui"
 
 
-def serve_ui(request):
-    """Serve the single-page UI directly — works in dev without collectstatic."""
-    if not _UI_FILE.exists():
-        raise Http404("UI file not found")
-    return FileResponse(open(_UI_FILE, "rb"), content_type="text/html")
+def _serve(filename):
+    """Return a view that serves a single HTML file from ui/."""
+    def view(request):
+        f = _UI_DIR / filename
+        if not f.exists():
+            raise Http404(f"{filename} not found")
+        return FileResponse(open(f, "rb"), content_type="text/html")
+    return view
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include("ami_course_recommendations.urls")),
-    # All of these serve the same single HTML file
-    path("", serve_ui),
-    path("ui/", serve_ui),
-    path("ui/index.html", serve_ui),
+    path("api/",   include("ami_course_recommendations.urls")),
+
+    # ── UI pages ─────────────────────────────────────────────────
+    path("login",       _serve("login.html"), name="login"),
+    path("",            _serve("index.html"), name="dashboard"),
+    path("ui/",         _serve("index.html")),
+    path("ui/index.html", _serve("index.html")),
 ]

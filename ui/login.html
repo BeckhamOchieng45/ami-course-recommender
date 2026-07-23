@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AMI · Sign In</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ami: { 50:'#f0f7ff',100:'#e0effe',200:'#baddfd',300:'#7ec2fb',
+                   400:'#399ef7',500:'#0f7fe8',600:'#0062c6',700:'#004ea0',
+                   800:'#044384',900:'#0a3a6d',950:'#072449' }
+          },
+          fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
+          keyframes: {
+            'fade-up': { '0%':{opacity:'0',transform:'translateY(12px)'},'100%':{opacity:'1',transform:'translateY(0)'} }
+          },
+          animation: { 'fade-up': 'fade-up 0.4s ease both' }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="h-full bg-slate-50 font-sans antialiased">
+
+  <div class="min-h-full flex">
+
+    <!-- ── Left: brand panel ── -->
+    <div class="hidden lg:flex lg:w-1/2 bg-ami-950 relative overflow-hidden flex-col justify-between p-12">
+      <!-- Background decoration -->
+      <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-96 h-96 bg-ami-800 rounded-full opacity-30"></div>
+        <div class="absolute -bottom-32 -left-32 w-80 h-80 bg-ami-700 rounded-full opacity-20"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-ami-900 rounded-full opacity-40"></div>
+      </div>
+
+      <div class="relative">
+        <img src="/static/ami-logo.avif" alt="AMI" class="h-10 w-auto"
+             onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'text-white font-extrabold text-2xl tracking-tight',textContent:'AMI'}))" />
+      </div>
+
+      <div class="relative">
+        <blockquote class="mt-8">
+          <p class="text-2xl font-light text-white leading-relaxed">
+            "86% of AMI clients improve their business performance within 12 months."
+          </p>
+          <footer class="mt-4 text-ami-300 text-sm font-medium">— AMI Impact Report</footer>
+        </blockquote>
+
+        <div class="mt-12 grid grid-cols-3 gap-6">
+          <div>
+            <p class="text-3xl font-bold text-white">84</p>
+            <p class="text-ami-400 text-xs mt-1">Practice courses</p>
+          </div>
+          <div>
+            <p class="text-3xl font-bold text-white">1,000</p>
+            <p class="text-ami-400 text-xs mt-1">Active learners</p>
+          </div>
+          <div>
+            <p class="text-3xl font-bold text-white">5</p>
+            <p class="text-ami-400 text-xs mt-1">Programme areas</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative text-ami-500 text-xs">
+        AMI Course Recommendation Engine · AI Coach Bot
+      </div>
+    </div>
+
+    <!-- ── Right: login form ── -->
+    <div class="flex-1 flex flex-col justify-center py-12 px-6 sm:px-12 lg:px-16">
+      <div class="mx-auto w-full max-w-sm animate-fade-up">
+
+        <!-- Mobile logo -->
+        <div class="lg:hidden mb-10 flex justify-center">
+          <img src="/static/ami-logo.avif" alt="AMI" class="h-10 w-auto"
+               onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'text-ami-700 font-extrabold text-2xl tracking-tight',textContent:'AMI'}))" />
+        </div>
+
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Sign in to AMI</h1>
+          <p class="mt-1.5 text-sm text-slate-500">AI-powered course recommendations for your learners.</p>
+        </div>
+
+        <form id="login-form" class="mt-8 space-y-5" onsubmit="handleLogin(event)">
+
+          <!-- Email -->
+          <div>
+            <label for="email" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required
+              value="admin@email.com"
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900
+                     placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ami-500 focus:border-transparent
+                     transition-all"
+              placeholder="admin@email.com" />
+          </div>
+
+          <!-- Password -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="password" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Password</label>
+            </div>
+            <div class="relative">
+              <input id="password" name="password" type="password" autocomplete="current-password" required
+                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900
+                       placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ami-500 focus:border-transparent
+                       transition-all pr-11"
+                placeholder="••••••••" />
+              <button type="button" onclick="togglePassword()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                <svg id="eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div id="error-box" class="hidden rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-center gap-2.5">
+            <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <p id="error-text" class="text-sm text-red-700 font-medium"></p>
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" id="submit-btn"
+            class="w-full py-2.5 px-4 rounded-xl bg-ami-600 hover:bg-ami-700 active:bg-ami-800
+                   text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all
+                   flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+            <svg id="spinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span id="btn-label">Sign in</span>
+          </button>
+        </form>
+
+        <p class="mt-8 text-center text-xs text-slate-400">
+          Default credentials: <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">admin@email.com</span> / <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">password</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // If already authed, go straight to dashboard
+    if (localStorage.getItem('ami_access')) {
+      window.location.href = '/';
+    }
+
+    function togglePassword() {
+      const input = document.getElementById('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const errBox   = document.getElementById('error-box');
+      const errText  = document.getElementById('error-text');
+      const btn      = document.getElementById('submit-btn');
+      const spinner  = document.getElementById('spinner');
+      const label    = document.getElementById('btn-label');
+
+      errBox.classList.add('hidden');
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+      label.textContent = 'Signing in…';
+
+      try {
+        const resp = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          errText.textContent = data.error || 'Sign in failed. Check your credentials.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        localStorage.setItem('ami_access',  data.access);
+        localStorage.setItem('ami_refresh', data.refresh);
+        localStorage.setItem('ami_user',    JSON.stringify(data.user));
+
+        window.location.href = '/';
+
+      } catch (err) {
+        errText.textContent = `Network error: ${err.message}`;
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        label.textContent = 'Sign in';
+      }
+    }
+  </script>
+</body>
+</html>

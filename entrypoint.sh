@@ -41,6 +41,22 @@ else
   echo "==> Data already present ($COURSE_COUNT courses) — skipping seed."
 fi
 
+echo "==> Ensuring superuser exists..."
+python manage.py shell -c "
+from django.contrib.auth.models import User
+if not User.objects.filter(username='admin@email.com').exists():
+    u = User.objects.create_superuser(
+        username='admin@email.com',
+        email='admin@email.com',
+        password='password',
+        first_name='Admin',
+        last_name='AMI',
+    )
+    print('  Superuser created: admin@email.com / password')
+else:
+    print('  Superuser already exists.')
+" 2>/dev/null
+
 echo "==> Collecting static files..."
 python manage.py collectstatic --noinput --clear 2>/dev/null || true
 

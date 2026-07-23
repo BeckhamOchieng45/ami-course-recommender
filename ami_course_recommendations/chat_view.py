@@ -32,6 +32,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from ami_course_recommendations.models import User
+from ami_course_recommendations.auth_views import jwt_required
 from engine import llm
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,7 @@ class ChatView(View):
         data: [DONE]\\n\\n
     """
 
+    @jwt_required
     def post(self, request):
         # ── Parse request body ────────────────────────────────────────────
         try:
