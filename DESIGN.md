@@ -55,7 +55,7 @@ w_context_effective = w_context_base + w_freed * 0.4
 
 ### Hard Filters (Exclusions)
 
-1. Already completed courses (`progress_pct == 100`)
+1. Already completed courses (`progress_pct >= 95`)
 2. Currently in-progress courses (`event_type == 'started'`, no completion)
 3. Unmet prerequisites (transitive dependency checking)
 
@@ -122,7 +122,7 @@ def score_manager_assessment(user: User, course: Course) -> ScoreResult:
 - Debuggable: template + data is fully deterministic
 - Auditable: AMI reports outcomes to funders; "LLM-generated reason" is not defensible
 - Fast: no API latency or token costs
-- LLM reserved for bonus: wrapping recommendations in coach-like tone, if time allows
+- **Implemented:** Groq (`openai/gpt-oss-120b`) wraps the templated reason in coaching tone as `coaching_reason`. The template always exists as `reason`. LLM enhances tone only — never influences ranking.
 
 ### Score Breakdown in API Response
 
@@ -133,11 +133,12 @@ def score_manager_assessment(user: User, course: Course) -> ScoreResult:
 ## 6. Assumptions & Design Constraints
 
 1. **Mobile-first**: Keep API payloads lean (JSON response < 10KB typical)
-2. **Low connectivity**: No streaming, no pagination for N=5 default
-3. **SQLite acceptable**: 1,000 users × 200 courses fits in memory; PostgreSQL supported via docker-compose
+2. **Low connectivity**: No streaming required for core recommendations API; SSE used only for optional AI chat
+3. **PostgreSQL in production**: Docker Compose ships Postgres 16 + gunicorn. SQLite used for local dev and all pytest runs.
 4. **JWT authentication**: All API endpoints require a Bearer token. Admin superuser created automatically on first run (`admin@email.com` / `password`). Token lifetimes: access 8h, refresh 7d.
 5. **English-only**: AMI operates pan-Africa, real system needs i18n
 6. **Static catalog**: Courses don't change during recommendation; real system needs cache invalidation
+7. **ARM64 / M1-M2 Macs**: Docker images declare `platform: linux/arm64` explicitly. Source dirs bind-mounted individually to prevent macOS venv leaking into container.
 
 ## 7. What Would Change at 10k+ Users?
 
