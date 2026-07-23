@@ -134,8 +134,8 @@ def score_manager_assessment(user: User, course: Course) -> ScoreResult:
 
 1. **Mobile-first**: Keep API payloads lean (JSON response < 10KB typical)
 2. **Low connectivity**: No streaming, no pagination for N=5 default
-3. **SQLite acceptable**: 1,000 users × 200 courses fits in memory; PostgreSQL is overkill for demo
-4. **No authentication**: API is open; real deployment needs user auth + rate limiting
+3. **SQLite acceptable**: 1,000 users × 200 courses fits in memory; PostgreSQL supported via docker-compose
+4. **JWT authentication**: All API endpoints require a Bearer token. Admin superuser created automatically on first run (`admin@email.com` / `password`). Token lifetimes: access 8h, refresh 7d.
 5. **English-only**: AMI operates pan-Africa, real system needs i18n
 6. **Static catalog**: Courses don't change during recommendation; real system needs cache invalidation
 
