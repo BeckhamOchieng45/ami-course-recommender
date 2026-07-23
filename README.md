@@ -273,7 +273,8 @@ Response:
   "learners": [
     {
       "user_id": "USR-00001",
-      "initials": "IM",
+      "display_name": "Entrepreneur #1",
+      "initials": "MB",
       "role": "Micro-Business Owner",
       "seniority": "Micro-Entrepreneur",
       "industry": "Retail",
@@ -346,8 +347,8 @@ Two-panel design: AMI brand + stats on the left, sign-in form on the right. Pre-
 
 ### Dashboard — `http://localhost:8000`
 
-- **Sidebar** — full learner list with avatar initials, role, industry, completion count, signal-mode badge. Search by name/goal/industry, filter by signal mode (cold-start / blended / behavioral), paginate with next/prev.
-- **Learner header** — when a learner is selected, shows their ID, signal-mode badge, role, industry, and stated goal.
+- **Sidebar** — full learner list with human-readable display names (e.g. "Manager #42"), role initials avatar, industry, completion count, signal-mode badge. Search by goal/industry, filter by signal mode (cold-start / blended / behavioral), paginate with next/prev.
+- **Learner header** — when a learner is selected, shows their display name, signal-mode badge, role, industry, seniority, and stated goal as a quoted line.
 - **Recommendation cards** — ranked results with score donut, coaching reason, signal contribution bar, skill tags, "Why?" and "Ask coach" buttons.
 - **Why? panel** — click any card or "Why?" to see the full score breakdown, signal weights, cold-start formula, and course details.
 - **AI Coach chat** — "Ask coach" opens a streaming conversation. The coach knows the learner's profile, history, and exactly why the course was recommended. Markdown rendered in responses.
@@ -370,7 +371,7 @@ uv run pytest tests/test_auth.py -v
 uv run pytest tests/test_scorers.py -v
 ```
 
-**143 tests, 1 skipped** across: data generation, scoring, filtering, cold-start blending, explainability, API endpoints, JWT authentication, learner list.
+**144 tests, 1 skipped** across: data generation, scoring, filtering, cold-start blending, explainability, API endpoints, JWT authentication, learner list.
 
 ---
 
@@ -392,19 +393,19 @@ ami-course-recommender/
 │   └── llm.py                    # Groq client (enhance_reason, stream_chat)
 ├── datagen/
 │   └── generate.py               # Synthetic data generator + superuser creation
-├── tests/                        # 143 tests
+├── tests/                        # 144 tests
 │   ├── test_datagen.py
 │   ├── test_scorers.py
 │   ├── test_filters.py
 │   ├── test_coldstart.py
 │   ├── test_explainer.py
 │   ├── test_api.py
-│   └── test_auth.py              # JWT auth + learner list tests
+│   └── test_auth.py              # JWT auth + learner list tests (25 tests)
 ├── sample_outputs/               # Annotated real API responses
 ├── ui/
-│   ├── login.html                # AMI-branded login page
-│   ├── index.html                # Dashboard with learner sidebar + recommendations
-│   └── ami-logo.avif             # AMI logo (served at /static/ami-logo.avif)
+│   ├── login.html                # AMI-branded two-panel login page
+│   ├── index.html                # Dashboard: learner sidebar + recommendations
+│   └── ami-logo.avif             # AMI logo (fallback; primary via Wix CDN)
 ├── Dockerfile                    # Multi-stage, non-root, linux/arm64
 ├── docker-compose.yml            # Postgres 16 + web, ARM64-native
 ├── entrypoint.sh                 # migrate → seed → superuser → collectstatic → serve

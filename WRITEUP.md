@@ -142,16 +142,41 @@ CREATE TABLE user_recommendations (
 
 ---
 
-## 6. On LLMs — Where They Fit and Where They Don't
+## 6. On LLMs — What's Implemented and Where the Boundary Is
 
-### Where an LLM earns its place
+### What Groq does in this system
 
-**Warming up the reason string.** The current templated reasons are accurate but functional. An LLM wrapper could turn "Because you told us you want to improve cash flow forecasting, we suggest Cash Flow Forecasting for Small Businesses" into something that reads more like AMI's coaching voice — warmer, more specific to the learner's context, drawing on their stated business situation. This is the right use: the structured data (which course, why, what tag matched) is determined by the engine; the LLM only adjusts tone and phrasing. The factual claim stays auditable.
+**`coaching_reason` enhancement.** Every recommendation carries two reason strings. `reason` is the deterministic template — "Because you told us you want to improve cash flow forecasting, we suggest Cash Flow Forecasting for Small Businesses." `coaching_reason` is that same content re-voiced by Groq (`openai/gpt-oss-120b`) in AMI's coaching tone — warmer, more personal, connected to the learner's stated goal and context. When `GROQ_API_KEY` is set, every recommendation's `coaching_reason` is Groq-enhanced. When absent, `coaching_reason` silently equals `reason` — no errors, no broken responses.
 
-**Semantic matching on free-text survey responses.** If learners write "I'm struggling to make payroll at the end of the month" rather than selecting tags, a small embedding model can map that to the relevant skill domains far better than keyword matching. This would improve survey scorer recall without changing the weighting logic.
+**`/api/chat` streaming coaching conversation.** A `POST /api/chat` endpoint streams a live coaching conversation via SSE. The system prompt embeds the learner's full profile (role, industry, seniority, stated goal, signal mode), the recommended course, and the score breakdown. The coach can explain exactly why this course was surfaced, what the learner will get from it, and what to do next — grounded in real data, not generic LLM output. Responses stream token-by-token and render as formatted markdown in the UI.
 
-### Where the LLM should stay out
+Both features degrade gracefully: `GROQ_API_KEY` absent → `coaching_reason` equals `reason`, `/api/chat` returns a clear message explaining the key is missing.
 
-**The ranking logic itself.** AMI is an evidence-based organisation that reports verified outcome data to funders and partners. A recommendation engine that silently changes its rankings because an LLM's weights drifted, or because a new model version interprets "cash flow" differently, is not defensible in that context. The scoring logic must be deterministic, versioned, and auditable — which the current architecture is. An LLM that influences *which* course is recommended rather than *how the recommendation is phrased* creates an audit trail problem that outweighs any accuracy gain at this scale.
+### Why the LLM stays out of ranking
 
-The right mental model: LLM is the presentation layer; the engine is the decision layer. Keep those boundaries explicit in the codebase and the team's understanding of the system.
+AMI reports verified outcome data — 86% business-performance improvement — to funders and partners. A recommendation engine that silently changes its rankings because an LLM's weights drifted, or because a new model version interprets "cash flow" differently, is not defensible in that context. The scoring logic must be deterministic, versioned, and auditable.
+
+The current architecture enforces this boundary explicitly:
+- `engine/scorers.py`, `engine/coldstart.py`, `engine/filters.py` — zero LLM imports
+- `engine/llm.py` — presentation layer only; called from `explainer.py` after the ranking is already final
+- `engine/explainer.py` — builds the templated `reason` first, then optionally enhances tone via Groq
+
+The right mental model: the engine decides *which* course to recommend. Groq decides *how to phrase* that recommendation. Those two concerns are separated by a clear module boundary and never cross.
+
+### What an LLM could add next
+
+**Semantic matching on free-text survey responses.** Right now learners select from structured tags. If they wrote "I'm struggling to make payroll at the end of the month" in a free-text field, an embedding model could map that to `cash flow management` far better than keyword matching. This would improve survey scorer recall without changing the weighting logic — the LLM output becomes just another source of tags feeding into the existing Jaccard scorer.
+
+---
+
+## 7. What's Deployed
+
+Beyond the core recommendation engine, the system ships with:
+
+**Authentication** — `djangorestframework-simplejwt` JWT auth on all endpoints. Access tokens expire in 8 hours, refresh tokens in 7 days. A `jwt_required` decorator was added to the existing plain Django views rather than rewriting them as DRF APIViews — a surgical change that kept the diff small and the scoring logic untouched.
+
+**Admin dashboard** — A single-page UI at `/` shows all 1,000 learners in a sidebar with human-readable display names ("Manager #42", "Entrepreneur #7"), signal-mode badges (cold-start / blended / behavioral), search, and filters. Clicking a learner loads their ranked recommendations. Each card has a "Why?" panel showing the exact score breakdown, cold-start formula with live numbers, and course details. An "Ask coach" button opens the streaming Groq chat.
+
+**Superuser auto-creation** — `admin@email.com` / `password` is created on first run (both locally via `datagen/generate.py` and in Docker via `entrypoint.sh`). These credentials are pre-filled on the login page for demo purposes and must be changed before any non-local deployment.
+
+**Docker + Postgres** — `docker-compose up --build` starts Postgres 16 and the Django/gunicorn web service. `entrypoint.sh` waits for Postgres readiness (pure Python socket check, no `netcat` dependency), runs migrations, seeds data if the DB is empty, creates the superuser, and starts gunicorn. Both services declare `platform: linux/arm64` for M1/M2 Mac compatibility. Source directories are bind-mounted individually rather than the whole project root — this prevents the macOS venv from overwriting the container's linux/arm64 venv, which was the root cause of the `gunicorn: cannot execute` error on Apple Silicon.
