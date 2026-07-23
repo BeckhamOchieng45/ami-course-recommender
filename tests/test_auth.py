@@ -214,9 +214,18 @@ class LearnerListViewTests(TestCase):
         data = json.loads(self._get().content)
         self.assertGreater(len(data["learners"]), 0)
         learner = data["learners"][0]
-        for field in ["user_id", "initials", "role", "industry", "stated_goal",
-                      "completed_courses", "signal_mode", "usage_confidence"]:
+        for field in ["user_id", "display_name", "initials", "role", "industry",
+                      "stated_goal", "completed_courses", "signal_mode", "usage_confidence"]:
             self.assertIn(field, learner, f"Missing field: {field}")
+
+    def test_display_name_is_human_readable(self):
+        """display_name should be 'Role #N', not a raw user_id."""
+        data = json.loads(self._get().content)
+        for l in data["learners"]:
+            self.assertNotRegex(l["display_name"], r"^USR-",
+                "display_name should not be a raw user ID")
+            self.assertIn("#", l["display_name"],
+                "display_name should contain a # number")
 
     def test_signal_mode_cold_start_filter(self):
         data = json.loads(self._get(signal="cold-start").content)

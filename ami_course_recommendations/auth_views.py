@@ -222,22 +222,43 @@ _INDUSTRY_LABELS = {
 
 def _serialize_learner(learner: LearnerUser, completed: int, total_events: int) -> dict:
     """Serialize a learner for the list response."""
-    initials = "".join(
-        w[0].upper()
-        for w in learner.stated_goal.split()[:2]
-        if w
-    ) or learner.user_id[-2:].upper()
+
+    # Generate a human-readable display name from role + learner number
+    # e.g. "USR-00042" → number 42, role "sme_manager" → "SME Manager #42"
+    _role_short = {
+        "micro_business_owner": "Entrepreneur",
+        "sme_manager":          "Manager",
+        "corporate_employee":   "Employee",
+        "senior_executive":     "Executive",
+    }
+    try:
+        num = int(learner.user_id.split("-")[-1])
+    except (ValueError, IndexError):
+        num = 0
+
+    short_role  = _role_short.get(learner.role, "Learner")
+    display_name = f"{short_role} #{num}"
+
+    # Two-letter initials from role abbreviation
+    initials_map = {
+        "micro_business_owner": "MB",
+        "sme_manager":          "SM",
+        "corporate_employee":   "CE",
+        "senior_executive":     "SE",
+    }
+    initials = initials_map.get(learner.role, learner.user_id[-2:].upper())
 
     return {
-        "user_id":        learner.user_id,
-        "initials":       initials,
-        "role":           _ROLE_LABELS.get(learner.role, learner.role),
-        "seniority":      _SENIORITY_LABELS.get(learner.seniority, learner.seniority),
-        "industry":       _INDUSTRY_LABELS.get(learner.industry, learner.industry),
-        "company_size":   learner.company_size,
-        "stated_goal":    learner.stated_goal,
+        "user_id":           learner.user_id,
+        "display_name":      display_name,
+        "initials":          initials,
+        "role":              _ROLE_LABELS.get(learner.role, learner.role),
+        "seniority":         _SENIORITY_LABELS.get(learner.seniority, learner.seniority),
+        "industry":          _INDUSTRY_LABELS.get(learner.industry, learner.industry),
+        "company_size":      learner.company_size,
+        "stated_goal":       learner.stated_goal,
         "completed_courses": completed,
-        "total_events":   total_events,
+        "total_events":      total_events,
         "signal_mode":    (
             "cold-start"      if completed == 0
             else "blended"    if completed < 5

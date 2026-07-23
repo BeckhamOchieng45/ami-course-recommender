@@ -116,7 +116,7 @@
   <!-- Sidebar header -->
   <div class="flex-shrink-0 px-4 py-4 border-b border-slate-100">
     <div class="flex items-center justify-between mb-3">
-      <img src="/static/ami-logo.avif" alt="AMI" class="h-8 w-auto"
+      <img src="https://static.wixstatic.com/media/7fa243_204dc652b2a24de89d4a30acadcc93be~mv2.png/v1/fill/w_249,h_53,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/ami-logo.png" alt="AMI" class="h-8 w-auto"
            onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'text-ami-700 font-extrabold text-lg tracking-tight',textContent:'AMI'}))" />
       <button onclick="handleLogout()" title="Sign out"
         class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all">
@@ -396,18 +396,18 @@ async function loadLearners(page=1) {
       const colorClass = AVATAR_COLORS[i % AVATAR_COLORS.length];
       const isActive = _activeLearner && _activeLearner.user_id === l.user_id;
       return `
-        <div class="learner-item ${isActive?'active':''}" onclick="selectLearner(${JSON.stringify(JSON.stringify(l))})">
+        <div class="learner-item ${isActive?'active':''}" onclick="selectLearner(${JSON.stringify(JSON.stringify(l))}, this)">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-full ${colorClass} flex items-center justify-center flex-shrink-0 text-xs font-bold">
               ${escHtml(l.initials)}
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between gap-1">
-                <span class="text-xs font-semibold text-slate-800 truncate">${escHtml(l.user_id)}</span>
+                <span class="text-xs font-semibold text-slate-800 truncate">${escHtml(l.display_name)}</span>
                 ${SIGNAL_BADGE[l.signal_mode]||''}
               </div>
-              <p class="text-[11px] text-slate-500 truncate mt-0.5">${escHtml(l.role)}</p>
-              <p class="text-[11px] text-slate-400 truncate">${escHtml(l.industry)} · ${l.completed_courses} completed</p>
+              <p class="text-[11px] text-slate-500 truncate mt-0.5">${escHtml(l.industry)}</p>
+              <p class="text-[11px] text-slate-400 truncate">${l.completed_courses} course${l.completed_courses===1?'':'s'} completed</p>
             </div>
           </div>
         </div>`;
@@ -417,27 +417,34 @@ async function loadLearners(page=1) {
   }
 }
 
-function selectLearner(jsonStr) {
+function selectLearner(jsonStr, el) {
   const learner = JSON.parse(jsonStr);
   _activeLearner = learner;
   _lastData = null; _selectedIdx = null;
 
-  // Update main header
+  // Update main header with display_name and readable metadata
   const conf = learner.usage_confidence;
   const confLabel = conf===0?'Cold-start':conf<1?`${Math.round(conf*100)}% behavioral`:'Fully behavioral';
   const confClass = conf===0?'conf-cold':conf<1?'conf-blended':'conf-full';
+  const goal = learner.stated_goal.length>70
+    ? learner.stated_goal.slice(0,67)+'…'
+    : learner.stated_goal;
+
   document.getElementById('main-user-header').innerHTML = `
     <div>
-      <div class="flex items-center gap-2">
-        <h2 class="text-sm font-bold text-slate-900">${escHtml(learner.user_id)}</h2>
+      <div class="flex items-center gap-2 flex-wrap">
+        <h2 class="text-sm font-bold text-slate-900">${escHtml(learner.display_name)}</h2>
         <span class="${confClass} text-xs font-bold px-2 py-0.5 rounded-full">${confLabel}</span>
       </div>
-      <p class="text-xs text-slate-500 mt-0.5">${escHtml(learner.role)} · ${escHtml(learner.industry)} · <em class="not-italic">${escHtml(learner.stated_goal.length>60?learner.stated_goal.slice(0,57)+'…':learner.stated_goal)}</em></p>
+      <p class="text-xs text-slate-500 mt-0.5">
+        ${escHtml(learner.role)} · ${escHtml(learner.industry)} · ${escHtml(learner.seniority)}
+      </p>
+      <p class="text-xs text-slate-400 mt-0.5 italic">"${escHtml(goal)}"</p>
     </div>`;
 
-  // Highlight sidebar item
+  // Highlight sidebar item — use the passed element, not window.event
   document.querySelectorAll('.learner-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  el.classList.add('active');
 
   document.getElementById('empty-state').classList.add('hidden');
   document.getElementById('results').classList.remove('hidden');
